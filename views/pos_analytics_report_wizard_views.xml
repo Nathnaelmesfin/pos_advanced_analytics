@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pos_analytics_report_wizard_form" model="ir.ui.view">
+        <field name="name">pos.analytics.report.wizard.form</field>
+        <field name="model">pos.analytics.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="POS Analytics Report">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Generate Analytics Report</h2>
+                    </div>
+
+                    <group>
+                        <group string="Date Range">
+                            <field name="date_start"/>
+                            <field name="date_end"/>
+                        </group>
+                        <group string="Report Options">
+                            <field name="report_type"/>
+                            <field name="report_basis"/>
+                            <field name="group_by"/>
+                            <field name="export_format"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Filters">
+                            <field name="pos_config_ids" widget="many2many_tags"/>
+                            <field name="cashier_ids" widget="many2many_tags"/>
+                            <field name="waiter_ids" widget="many2many_tags"/>
+                            <field name="payment_method_ids" widget="many2many_tags"/>
+                        </group>
+                        <group string="Product Filters">
+                            <field name="product_category_ids" widget="many2many_tags"/>
+                            <field name="product_ids" widget="many2many_tags"/>
+                            <field name="order_state"/>
+                        </group>
+                    </group>
+
+                    <group string="Additional Options">
+                        <field name="include_summary"/>
+                        <field name="include_raw_orders"/>
+                    </group>
+                </sheet>
+
+                <footer>
+                    <button name="action_generate_pdf"
+                            string="Generate PDF"
+                            type="object"
+                            class="btn-primary"
+                            groups="pos_advanced_analytics.group_pos_analytics_user"/>
+                    <button name="action_generate_excel"
+                            string="Generate Excel"
+                            type="object"
+                            class="btn-secondary"
+                            groups="pos_advanced_analytics.group_pos_analytics_user"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

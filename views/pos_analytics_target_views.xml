@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── List View ─────────────────────────────────────────────────────── -->
+    <record id="view_pos_analytics_target_list" model="ir.ui.view">
+        <field name="name">pos.analytics.target.list</field>
+        <field name="model">pos.analytics.target</field>
+        <field name="arch" type="xml">
+            <list string="Sales Targets" decoration-muted="not active">
+                <field name="name"/>
+                <field name="target_level"/>
+                <field name="pos_config_id"/>
+                <field name="cashier_id"/>
+                <field name="waiter_id"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="target_amount" widget="monetary"/>
+                <field name="target_orders"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Form View ─────────────────────────────────────────────────────── -->
+    <record id="view_pos_analytics_target_form" model="ir.ui.view">
+        <field name="name">pos.analytics.target.form</field>
+        <field name="model">pos.analytics.target</field>
+        <field name="arch" type="xml">
+            <form string="Sales Target">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Monthly Target – Main Branch"/></h1>
+                    </div>
+                    <group>
+                        <group string="Scope">
+                            <field name="target_level" readonly="1"/>
+                            <field name="pos_config_id"/>
+                            <field name="cashier_id"/>
+                            <field name="waiter_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Period">
+                            <field name="date_start"/>
+                            <field name="date_end"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Targets">
+                        <group>
+                            <field name="target_amount" widget="monetary"/>
+                            <field name="target_orders"/>
+                            <field name="target_avg_order_value" widget="monetary"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1" placeholder="Optional notes about this target…"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Search View ───────────────────────────────────────────────────── -->
+    <record id="view_pos_analytics_target_search" model="ir.ui.view">
+        <field name="name">pos.analytics.target.search</field>
+        <field name="model">pos.analytics.target</field>
+        <field name="arch" type="xml">
+            <search string="Search Targets">
+                <field name="name"/>
+                <field name="pos_config_id"/>
+                <field name="cashier_id"/>
+                <field name="waiter_id"/>
+                <filter name="active" string="Active" domain="[('active','=',True)]"/>
+                <filter name="inactive" string="Archived" domain="[('active','=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_branch" string="Branch" context="{'group_by': 'pos_config_id'}"/>
+                    <filter name="group_level" string="Target Level" context="{'group_by': 'target_level'}"/>
+                    <filter name="group_month" string="Start Month" context="{'group_by': 'date_start:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+</odoo>

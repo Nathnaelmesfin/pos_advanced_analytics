@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pos_analytics_res_config_settings_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.pos.analytics</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.action_general_configuration"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('settings')]" position="inside">
+                <div class="app_settings_block"
+                     data-string="POS Advanced Analytics"
+                     string="POS Advanced Analytics"
+                     data-key="pos_advanced_analytics">
+
+                    <h2>POS Advanced Analytics</h2>
+
+                    <div class="row mt16 o_settings_container">
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_analytics_default_period" string="Default Dashboard Period"/>
+                                <div class="text-muted">
+                                    The time period automatically selected when opening the dashboard.
+                                </div>
+                                <field name="pos_analytics_default_period"/>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_analytics_refresh_interval" string="Auto-Refresh Interval"/>
+                                <div class="text-muted">
+                                    How often the live dashboard reloads data automatically.
+                                </div>
+                                <field name="pos_analytics_refresh_interval"/>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_analytics_default_branch_id" string="Default POS Branch"/>
+                                <div class="text-muted">
+                                    Pre-select this branch when the dashboard opens.
+                                </div>
+                                <field name="pos_analytics_default_branch_id"/>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_analytics_timezone" string="Report Timezone"/>
+                                <div class="text-muted">
+                                    Timezone used for all date/time calculations (default: Africa/Addis_Ababa).
+                                </div>
+                                <field name="pos_analytics_timezone"/>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="pos_analytics_enable_targets" widget="boolean_toggle"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_analytics_enable_targets" string="Enable Target Cards"/>
+                                <div class="text-muted">
+                                    Show sales target achievement cards on the dashboard.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="pos_analytics_enable_waiter" widget="boolean_toggle"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_analytics_enable_waiter" string="Enable Waiter Analytics"/>
+                                <div class="text-muted">
+                                    Display waiter performance section on the dashboard.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="pos_analytics_enable_cashier" widget="boolean_toggle"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="pos_analytics_enable_cashier" string="Enable Cashier Analytics"/>
+                                <div class="text-muted">
+                                    Display cashier performance section on the dashboard.
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

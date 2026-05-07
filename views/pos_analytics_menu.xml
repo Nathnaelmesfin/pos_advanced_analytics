@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Analytics root menu (child of Point of Sale) ─────────────────── -->
+    <menuitem
+        id="menu_pos_analytics_root"
+        name="Analytics"
+        parent="point_of_sale.menu_point_root"
+        sequence="50"
+        groups="pos_advanced_analytics.group_pos_analytics_user"
+    />
+
+    <!-- ── Live Dashboard ────────────────────────────────────────────────── -->
+    <menuitem
+        id="menu_pos_analytics_dashboard"
+        name="Live Dashboard"
+        parent="menu_pos_analytics_root"
+        action="pos_advanced_analytics.action_pos_analytics_dashboard"
+        sequence="10"
+        groups="pos_advanced_analytics.group_pos_analytics_user"
+    />
+
+    <!-- ── Reports ───────────────────────────────────────────────────────── -->
+    <menuitem
+        id="menu_pos_analytics_reports"
+        name="Reports"
+        parent="menu_pos_analytics_root"
+        action="pos_advanced_analytics.action_pos_analytics_report_wizard"
+        sequence="20"
+        groups="pos_advanced_analytics.group_pos_analytics_user"
+    />
+
+    <!-- ── Targets ───────────────────────────────────────────────────────── -->
+    <menuitem
+        id="menu_pos_analytics_targets"
+        name="Targets"
+        parent="menu_pos_analytics_root"
+        action="pos_advanced_analytics.action_pos_analytics_targets"
+        sequence="30"
+        groups="pos_advanced_analytics.group_pos_analytics_manager"
+    />
+
+    <!-- ── Configuration ─────────────────────────────────────────────────── -->
+    <menuitem
+        id="menu_pos_analytics_config"
+        name="Configuration"
+        parent="menu_pos_analytics_root"
+        action="pos_advanced_analytics.action_pos_analytics_config"
+        sequence="40"
+        groups="pos_advanced_analytics.group_pos_analytics_manager"
+    />
+
+</odoo>

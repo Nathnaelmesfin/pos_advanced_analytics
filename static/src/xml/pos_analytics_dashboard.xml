@@ -1,0 +1,742 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="pos_advanced_analytics.PosAnalyticsDashboard">
+    <div class="pa-dashboard">
+
+        <!-- ══ HEADER BAR ══════════════════════════════════════════════════ -->
+        <div class="pa-header">
+            <div class="pa-header-left">
+                <span class="pa-logo">&#9632;</span>
+                <h2>POS Analytics Dashboard</h2>
+                <span t-if="state.lastRefresh" class="pa-refresh-badge">
+                    Last updated: <t t-esc="state.lastRefresh"/>
+                </span>
+            </div>
+            <div class="pa-header-right">
+                <button class="pa-btn pa-btn-outline" t-on-click="onRefresh">
+                    &#8635; Refresh
+                </button>
+                <button class="pa-btn pa-btn-primary" t-on-click="onOpenReportWizard">
+                    &#128196; Reports
+                </button>
+            </div>
+        </div>
+
+        <!-- ══ FILTER BAR ═════════════════════════════════════════════════ -->
+        <div class="pa-filters">
+            <div class="pa-filter-group">
+                <label>Period</label>
+                <select t-on-change="onPeriodChange">
+                    <option value="today" t-att-selected="state.period === 'today'">Today</option>
+                    <option value="yesterday" t-att-selected="state.period === 'yesterday'">Yesterday</option>
+                    <option value="this_week" t-att-selected="state.period === 'this_week'">This Week</option>
+                    <option value="last_week" t-att-selected="state.period === 'last_week'">Last Week</option>
+                    <option value="this_month" t-att-selected="state.period === 'this_month'">This Month</option>
+                    <option value="last_month" t-att-selected="state.period === 'last_month'">Last Month</option>
+                    <option value="this_year" t-att-selected="state.period === 'this_year'">This Year</option>
+                    <option value="custom" t-att-selected="state.period === 'custom'">Custom Range</option>
+                </select>
+            </div>
+
+            <t t-if="state.showCustomDates">
+                <div class="pa-filter-group">
+                    <label>Start Date</label>
+                    <input type="date" t-att-value="state.date_start" t-on-change="onDateStartChange"/>
+                </div>
+                <div class="pa-filter-group">
+                    <label>End Date</label>
+                    <input type="date" t-att-value="state.date_end" t-on-change="onDateEndChange"/>
+                </div>
+                <div class="pa-filter-group pa-filter-apply">
+                    <button class="pa-btn pa-btn-primary" t-on-click="onApplyCustomDates">Apply</button>
+                </div>
+            </t>
+
+            <div class="pa-filter-group">
+                <label>Branch</label>
+                <select multiple="multiple" t-on-change="onBranchChange" class="pa-multi-select">
+                    <t t-foreach="posConfigs" t-as="cfg" t-key="cfg.id">
+                        <option t-att-value="cfg.id"><t t-esc="cfg.name"/></option>
+                    </t>
+                </select>
+            </div>
+
+            <div class="pa-filter-group">
+                <label>Cashier</label>
+                <select multiple="multiple" t-on-change="onCashierChange" class="pa-multi-select">
+                    <t t-foreach="cashiers" t-as="u" t-key="u.id">
+                        <option t-att-value="u.id"><t t-esc="u.name"/></option>
+                    </t>
+                </select>
+            </div>
+
+            <div class="pa-filter-group">
+                <label>Waiter</label>
+                <select multiple="multiple" t-on-change="onWaiterChange" class="pa-multi-select">
+                    <t t-foreach="waiters" t-as="emp" t-key="emp.id">
+                        <option t-att-value="emp.id"><t t-esc="emp.name"/></option>
+                    </t>
+                </select>
+            </div>
+
+            <div class="pa-filter-group">
+                <label>Category</label>
+                <select multiple="multiple" t-on-change="onCategoryChange" class="pa-multi-select">
+                    <t t-foreach="categories" t-as="cat" t-key="cat.id">
+                        <option t-att-value="cat.id"><t t-esc="cat.name"/></option>
+                    </t>
+                </select>
+            </div>
+
+            <div class="pa-filter-group">
+                <label>Payment Method</label>
+                <select multiple="multiple" t-on-change="onPaymentMethodChange" class="pa-multi-select">
+                    <t t-foreach="paymentMethodOptions" t-as="pm" t-key="pm.id">
+                        <option t-att-value="pm.id"><t t-esc="pm.name"/></option>
+                    </t>
+                </select>
+            </div>
+
+            <div class="pa-filter-group">
+                <label>Report Basis</label>
+                <select t-on-change="onReportBasisChange">
+                    <option value="sales_incl_tax" t-att-selected="state.report_basis === 'sales_incl_tax'">Sales incl. Tax</option>
+                    <option value="sales_excl_tax" t-att-selected="state.report_basis === 'sales_excl_tax'">Sales excl. Tax</option>
+                    <option value="qty_sold" t-att-selected="state.report_basis === 'qty_sold'">Quantity Sold</option>
+                    <option value="net_sales" t-att-selected="state.report_basis === 'net_sales'">Net Sales After Refunds</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ══ LOADING ════════════════════════════════════════════════════ -->
+        <t t-if="state.loading">
+            <div class="pa-loading">
+                <div class="pa-spinner"/>
+                <p>Loading analytics data…</p>
+            </div>
+        </t>
+
+        <!-- ══ ERROR ══════════════════════════════════════════════════════ -->
+        <t t-elif="state.error">
+            <div class="pa-error">
+                <h3>&#9888; Analytics Error</h3>
+                <p><t t-esc="state.error"/></p>
+                <button class="pa-btn pa-btn-primary" t-on-click="onRefresh">Retry</button>
+            </div>
+        </t>
+
+        <!-- ══ MAIN CONTENT ═══════════════════════════════════════════════ -->
+        <t t-elif="state.data">
+
+            <!-- ── TAB NAV ──────────────────────────────────────────────── -->
+            <div class="pa-tabs">
+                <button t-att-class="'pa-tab' + (state.activeTab === 'overview' ? ' active' : '')"
+                        t-on-click="() => this.onTabChange('overview')">Overview</button>
+                <button t-att-class="'pa-tab' + (state.activeTab === 'products' ? ' active' : '')"
+                        t-on-click="() => this.onTabChange('products')">Products &amp; Categories</button>
+                <button t-att-class="'pa-tab' + (state.activeTab === 'staff' ? ' active' : '')"
+                        t-on-click="() => this.onTabChange('staff')">Staff</button>
+                <button t-att-class="'pa-tab' + (state.activeTab === 'time' ? ' active' : '')"
+                        t-on-click="() => this.onTabChange('time')">Time Analysis</button>
+                <button t-att-class="'pa-tab' + (state.activeTab === 'payments' ? ' active' : '')"
+                        t-on-click="() => this.onTabChange('payments')">Payments</button>
+                <button t-att-class="'pa-tab' + (state.activeTab === 'branches' ? ' active' : '')"
+                        t-on-click="() => this.onTabChange('branches')">Branches</button>
+                <t t-if="state.settings.enable_targets">
+                    <button t-att-class="'pa-tab' + (state.activeTab === 'targets' ? ' active' : '')"
+                            t-on-click="() => this.onTabChange('targets')">Targets</button>
+                </t>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: OVERVIEW
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'overview'">
+
+                <!-- KPI Cards Row 1 -->
+                <div class="pa-kpi-grid">
+                    <div class="pa-kpi-card pa-kpi-blue">
+                        <div class="pa-kpi-label">Total Sales</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.total_sales)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-green">
+                        <div class="pa-kpi-label">Net Sales</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.net_sales)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-yellow">
+                        <div class="pa-kpi-label">Total Orders</div>
+                        <div class="pa-kpi-value"><t t-esc="kpis.total_orders || 0"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-orange">
+                        <div class="pa-kpi-label">Avg Order Value</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.avg_order_value)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-blue">
+                        <div class="pa-kpi-label">Qty Sold</div>
+                        <div class="pa-kpi-value"><t t-esc="numFmt(kpis.total_qty_sold)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-red">
+                        <div class="pa-kpi-label">Total Refunds</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.total_refunds)"/></div>
+                        <div class="pa-kpi-sub"><t t-esc="kpis.refund_orders || 0"/> orders</div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-orange">
+                        <div class="pa-kpi-label">Total Discounts</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.total_discounts)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-gray">
+                        <div class="pa-kpi-label">Total Tax</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.total_tax)"/></div>
+                    </div>
+                </div>
+
+                <!-- KPI Cards Row 2: Payment breakdown -->
+                <div class="pa-kpi-grid">
+                    <div class="pa-kpi-card pa-kpi-green">
+                        <div class="pa-kpi-label">Cash Sales</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.cash_sales)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-blue">
+                        <div class="pa-kpi-label">Bank / Card Sales</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.bank_card_sales)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-purple">
+                        <div class="pa-kpi-label">Mobile Money</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.mobile_money_sales)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-gray">
+                        <div class="pa-kpi-label">Other Payments</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.other_payment_sales)"/></div>
+                    </div>
+                </div>
+
+                <!-- KPI Row 3: Highlights -->
+                <div class="pa-kpi-grid">
+                    <div class="pa-kpi-card pa-kpi-highlight">
+                        <div class="pa-kpi-label">&#127942; Best Product</div>
+                        <div class="pa-kpi-value pa-kpi-text"><t t-esc="kpis.best_selling_product || '—'"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-highlight">
+                        <div class="pa-kpi-label">&#127942; Best Category</div>
+                        <div class="pa-kpi-value pa-kpi-text"><t t-esc="kpis.best_selling_category || '—'"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-highlight">
+                        <div class="pa-kpi-label">&#127942; Top Waiter</div>
+                        <div class="pa-kpi-value pa-kpi-text"><t t-esc="kpis.top_waiter || '—'"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-highlight">
+                        <div class="pa-kpi-label">&#127942; Top Cashier</div>
+                        <div class="pa-kpi-value pa-kpi-text"><t t-esc="kpis.top_cashier || '—'"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-highlight">
+                        <div class="pa-kpi-label">&#9201; Peak Hour</div>
+                        <div class="pa-kpi-value pa-kpi-text"><t t-esc="peakHourLabel(kpis.peak_hour)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-highlight">
+                        <div class="pa-kpi-label">&#128197; Peak Day</div>
+                        <div class="pa-kpi-value pa-kpi-text"><t t-esc="kpis.peak_day || '—'"/></div>
+                    </div>
+                </div>
+
+                <!-- Sales Trend Chart -->
+                <div class="pa-chart-card pa-full-width">
+                    <div class="pa-chart-header">
+                        <h4>Sales Trend</h4>
+                    </div>
+                    <div class="pa-chart-body" style="height:300px;">
+                        <canvas t-ref="trendChart"/>
+                    </div>
+                </div>
+
+            </t>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: PRODUCTS & CATEGORIES
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'products'">
+                <div class="pa-row">
+                    <div class="pa-chart-card pa-half">
+                        <div class="pa-chart-header"><h4>Top Products (by Sales)</h4></div>
+                        <div class="pa-chart-body" style="height:320px;">
+                            <canvas t-ref="productChart"/>
+                        </div>
+                    </div>
+                    <div class="pa-chart-card pa-half">
+                        <div class="pa-chart-header"><h4>Sales by Category</h4></div>
+                        <div class="pa-chart-body" style="height:320px;">
+                            <canvas t-ref="categoryChart"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Table -->
+                <div class="pa-table-card">
+                    <div class="pa-table-header"><h4>Product Performance</h4></div>
+                    <div class="pa-table-body">
+                        <table class="pa-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th class="text-right">Qty Sold</th>
+                                    <th class="text-right">Gross Sales</th>
+                                    <th class="text-right">Discount</th>
+                                    <th class="text-right">Net Sales</th>
+                                    <th class="text-right">Refund Qty</th>
+                                    <th class="text-right">Refund Amt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="topProducts.length === 0">
+                                    <tr><td colspan="8" class="pa-empty">No product data found for the selected filters.</td></tr>
+                                </t>
+                                <t t-foreach="topProducts" t-as="p" t-key="p.product_id">
+                                    <tr>
+                                        <td><t t-esc="p.product_name"/></td>
+                                        <td><t t-esc="p.categ_name"/></td>
+                                        <td class="text-right"><t t-esc="numFmt(p.qty_sold)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(p.gross_sales)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(p.discount_amount)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(p.net_sales)"/></td>
+                                        <td class="text-right"><t t-esc="numFmt(p.refund_qty)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(p.refund_amount)"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Category Table -->
+                <div class="pa-table-card">
+                    <div class="pa-table-header"><h4>Category Performance</h4></div>
+                    <div class="pa-table-body">
+                        <table class="pa-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="text-right">Qty Sold</th>
+                                    <th class="text-right">Gross Sales</th>
+                                    <th class="text-right">Discount</th>
+                                    <th class="text-right">Net Sales</th>
+                                    <th class="text-right">Refund Qty</th>
+                                    <th class="text-right">Refund Amt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="topCategories.length === 0">
+                                    <tr><td colspan="7" class="pa-empty">No category data for the selected filters.</td></tr>
+                                </t>
+                                <t t-foreach="topCategories" t-as="c" t-key="c.categ_id">
+                                    <tr>
+                                        <td><t t-esc="c.categ_name"/></td>
+                                        <td class="text-right"><t t-esc="numFmt(c.qty_sold)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(c.gross_sales)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(c.discount_amount)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(c.net_sales)"/></td>
+                                        <td class="text-right"><t t-esc="numFmt(c.refund_qty)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(c.refund_amount)"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: STAFF
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'staff'">
+
+                <!-- Waiter Performance -->
+                <t t-if="state.settings.enable_waiter">
+                    <div class="pa-table-card">
+                        <div class="pa-table-header"><h4>Waiter Performance</h4></div>
+                        <div class="pa-table-body">
+                            <table class="pa-table">
+                                <thead>
+                                    <tr>
+                                        <th>Waiter</th>
+                                        <th class="text-right">Total Sales</th>
+                                        <th class="text-right">Orders</th>
+                                        <th class="text-right">Avg Order</th>
+                                        <th class="text-right">Qty Sold</th>
+                                        <th class="text-right">Refunds</th>
+                                        <th class="text-right">Discounts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-if="waiterPerf.length === 0">
+                                        <tr><td colspan="7" class="pa-empty">No waiter data. Ensure employees are assigned to POS orders.</td></tr>
+                                    </t>
+                                    <t t-foreach="waiterPerf" t-as="w" t-key="w.employee_id">
+                                        <tr>
+                                            <td><t t-esc="w.waiter_name"/></td>
+                                            <td class="text-right"><t t-esc="fmt(w.total_sales)"/></td>
+                                            <td class="text-right"><t t-esc="w.total_orders"/></td>
+                                            <td class="text-right"><t t-esc="fmt(w.avg_order_value)"/></td>
+                                            <td class="text-right"><t t-esc="numFmt(w.qty_sold)"/></td>
+                                            <td class="text-right"><t t-esc="fmt(w.total_refunds)"/></td>
+                                            <td class="text-right"><t t-esc="fmt(w.total_discounts)"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- Cashier Performance -->
+                <t t-if="state.settings.enable_cashier">
+                    <div class="pa-table-card">
+                        <div class="pa-table-header"><h4>Cashier Performance</h4></div>
+                        <div class="pa-table-body">
+                            <table class="pa-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cashier</th>
+                                        <th class="text-right">Collected</th>
+                                        <th class="text-right">Orders</th>
+                                        <th class="text-right">Avg Ticket</th>
+                                        <th class="text-right">Refunds</th>
+                                        <th class="text-right">Discounts</th>
+                                        <th>Payment Methods</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-if="cashierPerf.length === 0">
+                                        <tr><td colspan="7" class="pa-empty">No cashier data for the selected filters.</td></tr>
+                                    </t>
+                                    <t t-foreach="cashierPerf" t-as="c" t-key="c.user_id">
+                                        <tr>
+                                            <td><t t-esc="c.cashier_name"/></td>
+                                            <td class="text-right"><t t-esc="fmt(c.total_collected)"/></td>
+                                            <td class="text-right"><t t-esc="c.total_orders"/></td>
+                                            <td class="text-right"><t t-esc="fmt(c.avg_ticket)"/></td>
+                                            <td class="text-right"><t t-esc="fmt(c.total_refunds)"/></td>
+                                            <td class="text-right"><t t-esc="fmt(c.total_discounts)"/></td>
+                                            <td>
+                                                <t t-foreach="c.payment_methods" t-as="pm" t-key="pm.method">
+                                                    <span class="pa-badge"><t t-esc="pm.method"/>: <t t-esc="numFmt(pm.amount)"/></span>
+                                                </t>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- Refund & Discount Summary -->
+                <div class="pa-row">
+                    <div class="pa-table-card pa-half">
+                        <div class="pa-table-header"><h4>Discounts by Cashier</h4></div>
+                        <div class="pa-table-body">
+                            <table class="pa-table">
+                                <thead>
+                                    <tr><th>Cashier</th><th class="text-right">Discount Amount</th></tr>
+                                </thead>
+                                <tbody>
+                                    <t t-if="(refundDiscountSummary.discount_by_cashier || []).length === 0">
+                                        <tr><td colspan="2" class="pa-empty">No discount data.</td></tr>
+                                    </t>
+                                    <t t-foreach="refundDiscountSummary.discount_by_cashier || []" t-as="r" t-key="r_index">
+                                        <tr>
+                                            <td><t t-esc="r.cashier_name"/></td>
+                                            <td class="text-right"><t t-esc="fmt(r.discount_amount)"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pa-table-card pa-half">
+                        <div class="pa-table-header"><h4>Discounts by Product</h4></div>
+                        <div class="pa-table-body">
+                            <table class="pa-table">
+                                <thead>
+                                    <tr><th>Product</th><th>Category</th><th class="text-right">Discount</th></tr>
+                                </thead>
+                                <tbody>
+                                    <t t-if="(refundDiscountSummary.discount_by_product || []).length === 0">
+                                        <tr><td colspan="3" class="pa-empty">No discount data.</td></tr>
+                                    </t>
+                                    <t t-foreach="refundDiscountSummary.discount_by_product || []" t-as="r" t-key="r_index">
+                                        <tr>
+                                            <td><t t-esc="r.product_name"/></td>
+                                            <td><t t-esc="r.categ_name"/></td>
+                                            <td class="text-right"><t t-esc="fmt(r.discount_amount)"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: TIME ANALYSIS
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'time'">
+                <div class="pa-row">
+                    <div class="pa-chart-card pa-half">
+                        <div class="pa-chart-header"><h4>Sales by Hour of Day</h4></div>
+                        <div class="pa-chart-body" style="height:300px;">
+                            <canvas t-ref="hourChart"/>
+                        </div>
+                    </div>
+                    <div class="pa-chart-card pa-half">
+                        <div class="pa-chart-header"><h4>Sales by Day of Week</h4></div>
+                        <div class="pa-chart-body" style="height:300px;">
+                            <canvas t-ref="dayChart"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Peak Hours Table -->
+                <div class="pa-table-card">
+                    <div class="pa-table-header"><h4>Hourly Breakdown</h4></div>
+                    <div class="pa-table-body">
+                        <table class="pa-table">
+                            <thead>
+                                <tr><th>Hour</th><th class="text-right">Orders</th><th class="text-right">Total Sales</th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="peakHours.length === 0">
+                                    <tr><td colspan="3" class="pa-empty">No hourly data available.</td></tr>
+                                </t>
+                                <t t-foreach="peakHours" t-as="h" t-key="h.hour">
+                                    <tr>
+                                        <td><t t-esc="h.label"/></td>
+                                        <td class="text-right"><t t-esc="h.order_count"/></td>
+                                        <td class="text-right"><t t-esc="fmt(h.total_sales)"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Peak Days Table -->
+                <div class="pa-table-card">
+                    <div class="pa-table-header"><h4>Daily Breakdown</h4></div>
+                    <div class="pa-table-body">
+                        <table class="pa-table">
+                            <thead>
+                                <tr><th>Day</th><th class="text-right">Orders</th><th class="text-right">Total Sales</th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="peakDays.length === 0">
+                                    <tr><td colspan="3" class="pa-empty">No daily data available.</td></tr>
+                                </t>
+                                <t t-foreach="peakDays" t-as="d" t-key="d.day_num">
+                                    <tr>
+                                        <td><t t-esc="d.day_name"/></td>
+                                        <td class="text-right"><t t-esc="d.order_count"/></td>
+                                        <td class="text-right"><t t-esc="fmt(d.total_sales)"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: PAYMENTS
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'payments'">
+                <div class="pa-row">
+                    <div class="pa-chart-card pa-half">
+                        <div class="pa-chart-header"><h4>Payment Method Breakdown</h4></div>
+                        <div class="pa-chart-body" style="height:300px;">
+                            <canvas t-ref="paymentChart"/>
+                        </div>
+                    </div>
+                    <div class="pa-kpi-grid pa-half" style="align-content:start;">
+                        <div class="pa-kpi-card pa-kpi-green">
+                            <div class="pa-kpi-label">Cash Sales</div>
+                            <div class="pa-kpi-value"><t t-esc="fmt(kpis.cash_sales)"/></div>
+                        </div>
+                        <div class="pa-kpi-card pa-kpi-blue">
+                            <div class="pa-kpi-label">Bank / Card</div>
+                            <div class="pa-kpi-value"><t t-esc="fmt(kpis.bank_card_sales)"/></div>
+                        </div>
+                        <div class="pa-kpi-card pa-kpi-purple">
+                            <div class="pa-kpi-label">Mobile Money</div>
+                            <div class="pa-kpi-value"><t t-esc="fmt(kpis.mobile_money_sales)"/></div>
+                        </div>
+                        <div class="pa-kpi-card pa-kpi-gray">
+                            <div class="pa-kpi-label">Other</div>
+                            <div class="pa-kpi-value"><t t-esc="fmt(kpis.other_payment_sales)"/></div>
+                        </div>
+                        <div class="pa-kpi-card pa-kpi-red">
+                            <div class="pa-kpi-label">Total Refunds</div>
+                            <div class="pa-kpi-value"><t t-esc="fmt(refundDiscountSummary.total_refund_amount)"/></div>
+                            <div class="pa-kpi-sub"><t t-esc="refundDiscountSummary.refund_order_count || 0"/> orders</div>
+                        </div>
+                        <div class="pa-kpi-card pa-kpi-orange">
+                            <div class="pa-kpi-label">Total Discounts</div>
+                            <div class="pa-kpi-value"><t t-esc="fmt(refundDiscountSummary.total_discount_amount)"/></div>
+                            <div class="pa-kpi-sub"><t t-esc="refundDiscountSummary.discounted_order_count || 0"/> orders</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pa-table-card">
+                    <div class="pa-table-header"><h4>Payment Methods Detail</h4></div>
+                    <div class="pa-table-body">
+                        <table class="pa-table">
+                            <thead>
+                                <tr><th>Payment Method</th><th class="text-right">Total Amount</th><th class="text-right">Order Count</th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="paymentMethods.length === 0">
+                                    <tr><td colspan="3" class="pa-empty">No payment data.</td></tr>
+                                </t>
+                                <t t-foreach="paymentMethods" t-as="pm" t-key="pm.method_id">
+                                    <tr>
+                                        <td><t t-esc="pm.method_name"/></td>
+                                        <td class="text-right"><t t-esc="fmt(pm.total_amount)"/></td>
+                                        <td class="text-right"><t t-esc="pm.order_count"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: BRANCHES
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'branches'">
+                <t t-if="branchComparison.length &gt; 1">
+                    <div class="pa-chart-card pa-full-width">
+                        <div class="pa-chart-header"><h4>Branch Sales Comparison</h4></div>
+                        <div class="pa-chart-body" style="height:300px;">
+                            <canvas t-ref="branchChart"/>
+                        </div>
+                    </div>
+                </t>
+
+                <div class="pa-table-card">
+                    <div class="pa-table-header"><h4>Branch Performance</h4></div>
+                    <div class="pa-table-body">
+                        <table class="pa-table">
+                            <thead>
+                                <tr>
+                                    <th>Branch</th>
+                                    <th class="text-right">Total Sales</th>
+                                    <th class="text-right">Net Sales</th>
+                                    <th class="text-right">Refunds</th>
+                                    <th class="text-right">Orders</th>
+                                    <th class="text-right">Avg Order</th>
+                                    <th>Top Product</th>
+                                    <th>Peak Hour</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="branchComparison.length === 0">
+                                    <tr><td colspan="8" class="pa-empty">No branch data available.</td></tr>
+                                </t>
+                                <t t-foreach="branchComparison" t-as="b" t-key="b.config_id">
+                                    <tr>
+                                        <td><strong><t t-esc="b.branch_name"/></strong></td>
+                                        <td class="text-right"><t t-esc="fmt(b.total_sales)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(b.net_sales)"/></td>
+                                        <td class="text-right"><t t-esc="fmt(b.total_refunds)"/></td>
+                                        <td class="text-right"><t t-esc="b.total_orders"/></td>
+                                        <td class="text-right"><t t-esc="fmt(b.avg_order_value)"/></td>
+                                        <td><t t-esc="b.top_product || '—'"/></td>
+                                        <td><t t-esc="peakHourLabel(b.peak_hour)"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: TARGETS
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'targets' and state.settings.enable_targets">
+                <t t-if="targetSummary.length === 0">
+                    <div class="pa-empty-state">
+                        <div class="pa-empty-icon">&#127919;</div>
+                        <h3>No Active Targets</h3>
+                        <p>Go to <strong>Analytics → Targets</strong> to create sales targets for branches, cashiers, or waiters.</p>
+                    </div>
+                </t>
+                <t t-foreach="targetSummary" t-as="t" t-key="t.target_id">
+                    <div class="pa-target-card">
+                        <div class="pa-target-header">
+                            <div>
+                                <h4><t t-esc="t.name"/></h4>
+                                <span class="pa-target-scope">
+                                    <t t-esc="t.branch"/>
+                                    <t t-if="t.cashier"> | Cashier: <t t-esc="t.cashier"/></t>
+                                    <t t-if="t.waiter"> | Waiter: <t t-esc="t.waiter"/></t>
+                                </span>
+                            </div>
+                            <div class="pa-target-pct" t-att-class="t.achievement_pct >= 100 ? 'pa-pct-good' : t.achievement_pct >= 70 ? 'pa-pct-warn' : 'pa-pct-bad'">
+                                <t t-esc="pctFmt(t.achievement_pct)"/>
+                            </div>
+                        </div>
+                        <div class="pa-target-progress">
+                            <div class="pa-progress-bar">
+                                <div class="pa-progress-fill"
+                                     t-att-style="'width:' + Math.min(t.achievement_pct, 100) + '%'"
+                                     t-att-class="t.achievement_pct >= 100 ? 'pa-fill-good' : t.achievement_pct >= 70 ? 'pa-fill-warn' : 'pa-fill-bad'"/>
+                            </div>
+                        </div>
+                        <div class="pa-target-kpis">
+                            <div class="pa-target-kpi">
+                                <div class="pa-target-kpi-label">Target</div>
+                                <div class="pa-target-kpi-value"><t t-esc="fmt(t.target_amount)"/></div>
+                            </div>
+                            <div class="pa-target-kpi">
+                                <div class="pa-target-kpi-label">Actual</div>
+                                <div class="pa-target-kpi-value"><t t-esc="fmt(t.actual_sales)"/></div>
+                            </div>
+                            <div class="pa-target-kpi">
+                                <div class="pa-target-kpi-label">Remaining</div>
+                                <div class="pa-target-kpi-value"><t t-esc="fmt(t.remaining)"/></div>
+                            </div>
+                            <div class="pa-target-kpi">
+                                <div class="pa-target-kpi-label">Req. Daily</div>
+                                <div class="pa-target-kpi-value"><t t-esc="fmt(t.req_daily_sales)"/></div>
+                            </div>
+                            <div class="pa-target-kpi">
+                                <div class="pa-target-kpi-label">Orders Target</div>
+                                <div class="pa-target-kpi-value"><t t-esc="t.target_orders || '—'"/></div>
+                            </div>
+                            <div class="pa-target-kpi">
+                                <div class="pa-target-kpi-label">Actual Orders</div>
+                                <div class="pa-target-kpi-value"><t t-esc="t.actual_orders"/></div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+
+        </t>
+
+        <!-- ══ EMPTY STATE (no data at all) ══════════════════════════════ -->
+        <t t-elif="!state.loading and !state.error">
+            <div class="pa-empty-state">
+                <div class="pa-empty-icon">&#128202;</div>
+                <h3>No Analytics Data</h3>
+                <p>No POS orders found for the selected filters. Adjust the date range or branch, or ensure POS orders exist with valid states.</p>
+            </div>
+        </t>
+
+    </div>
+</t>
+
+</templates>

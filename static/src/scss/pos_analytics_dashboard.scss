@@ -1,0 +1,611 @@
+// ─── POS Advanced Analytics Dashboard Styles ─────────────────────────────────
+
+$pa-primary: #1F3864;
+$pa-secondary: #2E75B6;
+$pa-green: #70AD47;
+$pa-yellow: #FFC000;
+$pa-orange: #ED7D31;
+$pa-red: #C00000;
+$pa-purple: #7030A0;
+$pa-gray: #6c757d;
+$pa-bg: #f4f6f9;
+$pa-card-bg: #ffffff;
+$pa-border: #dee2e6;
+$pa-text: #333333;
+$pa-text-muted: #6c757d;
+$pa-radius: 8px;
+$pa-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+.pa-dashboard {
+    background: $pa-bg;
+    min-height: 100vh;
+    padding: 0 0 32px 0;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: $pa-text;
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+.pa-header {
+    background: $pa-primary;
+    color: #ffffff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+
+    &-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+    }
+
+    &-right {
+        display: flex;
+        gap: 10px;
+    }
+}
+
+.pa-logo {
+    font-size: 24px;
+    color: $pa-yellow;
+}
+
+.pa-refresh-badge {
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 3px 10px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+
+.pa-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+
+    &-primary {
+        background: $pa-secondary;
+        color: #ffffff;
+        &:hover { background: darken($pa-secondary, 8%); }
+    }
+
+    &-outline {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        color: #ffffff;
+        &:hover { background: rgba(255, 255, 255, 0.1); }
+    }
+}
+
+// ─── Filter Bar ───────────────────────────────────────────────────────────────
+
+.pa-filters {
+    background: $pa-card-bg;
+    border-bottom: 1px solid $pa-border;
+    padding: 12px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.pa-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    label {
+        font-size: 11px;
+        font-weight: 600;
+        color: $pa-text-muted;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    select, input[type="date"] {
+        border: 1px solid $pa-border;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 13px;
+        color: $pa-text;
+        background: #fafafa;
+        outline: none;
+        min-width: 120px;
+
+        &:focus {
+            border-color: $pa-secondary;
+            box-shadow: 0 0 0 2px rgba(46, 117, 182, 0.15);
+        }
+    }
+}
+
+.pa-multi-select {
+    min-height: 34px;
+    max-height: 80px;
+}
+
+.pa-filter-apply {
+    justify-content: flex-end;
+    padding-bottom: 1px;
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+
+.pa-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 24px 0;
+    border-bottom: 2px solid $pa-border;
+    margin-bottom: 20px;
+    background: $pa-card-bg;
+}
+
+.pa-tab {
+    border: none;
+    background: none;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: $pa-text-muted;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 4px 4px 0 0;
+    transition: color 0.2s, border-color 0.2s;
+
+    &:hover {
+        color: $pa-secondary;
+        background: rgba(46, 117, 182, 0.05);
+    }
+
+    &.active {
+        color: $pa-primary;
+        border-bottom-color: $pa-primary;
+        font-weight: 600;
+    }
+}
+
+// ─── KPI Grid ─────────────────────────────────────────────────────────────────
+
+.pa-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    padding: 0 24px 18px;
+}
+
+.pa-kpi-card {
+    background: $pa-card-bg;
+    border-radius: $pa-radius;
+    padding: 16px;
+    box-shadow: $pa-shadow;
+    border-left: 4px solid $pa-border;
+    transition: transform 0.15s, box-shadow 0.15s;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    &.pa-kpi-blue  { border-left-color: $pa-secondary; }
+    &.pa-kpi-green { border-left-color: $pa-green; }
+    &.pa-kpi-yellow { border-left-color: $pa-yellow; }
+    &.pa-kpi-orange { border-left-color: $pa-orange; }
+    &.pa-kpi-red   { border-left-color: $pa-red; }
+    &.pa-kpi-purple { border-left-color: $pa-purple; }
+    &.pa-kpi-gray  { border-left-color: $pa-gray; }
+    &.pa-kpi-highlight {
+        border-left-color: $pa-yellow;
+        background: #fffdf0;
+    }
+}
+
+.pa-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $pa-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+}
+
+.pa-kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: $pa-primary;
+    line-height: 1.2;
+
+    &.pa-kpi-text {
+        font-size: 15px;
+        font-weight: 600;
+        word-break: break-word;
+    }
+}
+
+.pa-kpi-sub {
+    font-size: 11px;
+    color: $pa-text-muted;
+    margin-top: 4px;
+}
+
+// ─── Charts ───────────────────────────────────────────────────────────────────
+
+.pa-chart-card {
+    background: $pa-card-bg;
+    border-radius: $pa-radius;
+    box-shadow: $pa-shadow;
+    margin: 0 24px 18px;
+
+    &.pa-full-width {
+        // full-width within the padding
+    }
+}
+
+.pa-chart-header {
+    padding: 14px 18px 0;
+    h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: $pa-primary;
+    }
+}
+
+.pa-chart-body {
+    padding: 12px 18px 18px;
+    position: relative;
+
+    canvas {
+        width: 100% !important;
+    }
+}
+
+// ─── Tables ───────────────────────────────────────────────────────────────────
+
+.pa-table-card {
+    background: $pa-card-bg;
+    border-radius: $pa-radius;
+    box-shadow: $pa-shadow;
+    margin: 0 24px 18px;
+    overflow: hidden;
+}
+
+.pa-table-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid $pa-border;
+
+    h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: $pa-primary;
+    }
+}
+
+.pa-table-body {
+    overflow-x: auto;
+}
+
+.pa-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    thead tr {
+        background: $pa-primary;
+        color: #ffffff;
+    }
+
+    th {
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 12px;
+        white-space: nowrap;
+
+        &.text-right {
+            text-align: right;
+        }
+    }
+
+    td {
+        padding: 9px 14px;
+        border-bottom: 1px solid lighten($pa-border, 3%);
+        vertical-align: middle;
+
+        &.text-right {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    tbody tr {
+        &:hover {
+            background: #f0f4fa;
+        }
+
+        &:last-child td {
+            border-bottom: none;
+        }
+    }
+}
+
+.pa-empty {
+    text-align: center;
+    color: $pa-text-muted;
+    padding: 24px !important;
+    font-style: italic;
+}
+
+// ─── Row layout for side-by-side cards ───────────────────────────────────────
+
+.pa-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 0 24px 0;
+    margin-bottom: 18px;
+
+    .pa-chart-card,
+    .pa-table-card {
+        margin: 0 !important;
+        border-radius: 0;
+
+        &:first-child {
+            border-radius: $pa-radius 0 0 $pa-radius;
+            border-right: 1px solid $pa-border;
+        }
+
+        &:last-child {
+            border-radius: 0 $pa-radius $pa-radius 0;
+        }
+    }
+
+    .pa-kpi-grid {
+        padding: 0;
+        margin: 0;
+        align-self: start;
+    }
+}
+
+.pa-half {
+    // used inside pa-row
+}
+
+// ─── Badges ───────────────────────────────────────────────────────────────────
+
+.pa-badge {
+    display: inline-block;
+    background: #e8f0fe;
+    color: $pa-secondary;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    margin: 2px 2px 0 0;
+}
+
+// ─── Loading ──────────────────────────────────────────────────────────────────
+
+.pa-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px;
+    color: $pa-text-muted;
+
+    p {
+        margin-top: 16px;
+        font-size: 14px;
+    }
+}
+
+.pa-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid lighten($pa-secondary, 30%);
+    border-top-color: $pa-secondary;
+    border-radius: 50%;
+    animation: pa-spin 0.9s linear infinite;
+}
+
+@keyframes pa-spin {
+    to { transform: rotate(360deg); }
+}
+
+// ─── Error ────────────────────────────────────────────────────────────────────
+
+.pa-error {
+    margin: 24px;
+    background: #fff5f5;
+    border: 1px solid #ffcccc;
+    border-radius: $pa-radius;
+    padding: 24px;
+    text-align: center;
+
+    h3 {
+        color: $pa-red;
+        margin-bottom: 8px;
+    }
+
+    p {
+        color: $pa-text-muted;
+        margin-bottom: 16px;
+    }
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+.pa-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    color: $pa-text-muted;
+
+    h3 {
+        margin: 16px 0 8px;
+        color: $pa-primary;
+    }
+
+    p {
+        font-size: 14px;
+        text-align: center;
+        max-width: 440px;
+    }
+}
+
+.pa-empty-icon {
+    font-size: 56px;
+    line-height: 1;
+}
+
+// ─── Targets ─────────────────────────────────────────────────────────────────
+
+.pa-target-card {
+    background: $pa-card-bg;
+    border-radius: $pa-radius;
+    box-shadow: $pa-shadow;
+    margin: 0 24px 18px;
+    padding: 18px;
+}
+
+.pa-target-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+
+    h4 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 600;
+        color: $pa-primary;
+    }
+}
+
+.pa-target-scope {
+    font-size: 12px;
+    color: $pa-text-muted;
+}
+
+.pa-target-pct {
+    font-size: 28px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 8px;
+
+    &.pa-pct-good { color: $pa-green; background: #f0fae8; }
+    &.pa-pct-warn { color: darken($pa-yellow, 20%); background: #fffde8; }
+    &.pa-pct-bad  { color: $pa-red; background: #fff0f0; }
+}
+
+.pa-target-progress {
+    margin-bottom: 14px;
+}
+
+.pa-progress-bar {
+    height: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.pa-progress-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.6s ease;
+
+    &.pa-fill-good { background: $pa-green; }
+    &.pa-fill-warn { background: $pa-yellow; }
+    &.pa-fill-bad  { background: $pa-red; }
+}
+
+.pa-target-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.pa-target-kpi {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+}
+
+.pa-target-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $pa-text-muted;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.pa-target-kpi-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: $pa-primary;
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 900px) {
+    .pa-row {
+        grid-template-columns: 1fr;
+
+        .pa-chart-card,
+        .pa-table-card {
+            border-radius: $pa-radius !important;
+            border-right: none !important;
+            margin-bottom: 14px !important;
+        }
+    }
+
+    .pa-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pa-filters {
+        gap: 8px;
+    }
+
+    .pa-header {
+        h2 { font-size: 16px; }
+    }
+}
+
+@media (max-width: 600px) {
+    .pa-kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pa-header-right .pa-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .pa-tabs {
+        overflow-x: auto;
+        padding-bottom: 0;
+    }
+}

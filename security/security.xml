@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Category ──────────────────────────────────────────────────────── -->
+    <record id="module_category_pos_analytics" model="ir.module.category">
+        <field name="name">POS Advanced Analytics</field>
+        <field name="description">Access rights for POS Advanced Analytics module</field>
+        <field name="sequence">100</field>
+    </record>
+
+    <!-- ── Analytics User ────────────────────────────────────────────────── -->
+    <record id="group_pos_analytics_user" model="res.groups">
+        <field name="name">Analytics User</field>
+        <field name="category_id" ref="module_category_pos_analytics"/>
+        <field name="comment">
+            Can view the analytics dashboard and generate standard reports.
+            Cannot manage targets or change analytics configuration.
+        </field>
+        <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+    </record>
+
+    <!-- ── Analytics Manager ─────────────────────────────────────────────── -->
+    <record id="group_pos_analytics_manager" model="res.groups">
+        <field name="name">Analytics Manager</field>
+        <field name="category_id" ref="module_category_pos_analytics"/>
+        <field name="comment">
+            Full access to dashboard, reports, targets, and configuration.
+            Can export PDF and Excel reports.
+        </field>
+        <field name="implied_ids" eval="[(4, ref('group_pos_analytics_user'))]"/>
+        <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+    </record>
+
+</odoo>
