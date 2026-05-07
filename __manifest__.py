@@ -42,12 +42,12 @@
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
+        'views/res_config_settings_views.xml',
         'data/dashboard_actions.xml',
         'data/cron_data.xml',
         'views/pos_analytics_menu.xml',
         'views/pos_analytics_target_views.xml',
         'views/pos_analytics_report_wizard_views.xml',
-        'views/res_config_settings_views.xml',
         'reports/pos_sales_report_action.xml',
         'reports/pos_sales_report_template.xml',
     ],
