@@ -23,6 +23,18 @@ _GROUP_BY_SQL = {
 }
 
 
+def _s(v):
+    """Extract a plain string from an Odoo 17 JSONB-translated field value.
+
+    In Odoo 17, Char fields with translate=True are stored as JSONB in
+    PostgreSQL, so raw SQL fetchall() returns dicts like {'en_US': 'Cash'}.
+    This helper normalises both plain strings and dicts to a str.
+    """
+    if isinstance(v, dict):
+        return next((val for val in v.values() if val), '') or ''
+    return v or ''
+
+
 def _to_local(dt_utc, tz_name=TZ_ADDIS):
     if not dt_utc:
         return None
@@ -179,7 +191,7 @@ class PosAnalyticsService(models.AbstractModel):
         for r in self.env.cr.dictfetchall():
             sid = r['session_id']
             pay_map.setdefault(sid, []).append(
-                {'method': r['method_name'], 'amount': round(float(r['amount'] or 0), 2)}
+                {'method': _s(r['method_name']), 'amount': round(float(r['amount'] or 0), 2)}
             )
 
         disc_where, disc_args = self._build_order_where(params)
@@ -403,7 +415,7 @@ class PosAnalyticsService(models.AbstractModel):
 
         cash_total = bank_total = mobile_total = other_total = 0.0
         for p in payments:
-            name_lower = (p['method_name'] or '').lower()
+            name_lower = _s(p['method_name']).lower()
             amt = float(p['total_amount'] or 0)
             if 'cash' in name_lower:
                 cash_total += amt
@@ -526,8 +538,8 @@ class PosAnalyticsService(models.AbstractModel):
             'bank_card_sales': round(bank_total, 2),
             'mobile_money_sales': round(mobile_total, 2),
             'other_payment_sales': round(other_total, 2),
-            'best_selling_product': best_product_row['product_name'] if best_product_row else None,
-            'best_selling_category': best_categ_row['categ_name'] if best_categ_row else None,
+            'best_selling_product': _s(best_product_row['product_name']) if best_product_row else None,
+            'best_selling_category': _s(best_categ_row['categ_name']) if best_categ_row else None,
             'top_waiter': top_waiter_row['waiter_name'] if top_waiter_row else None,
             'top_cashier': top_cashier_row['cashier_name'] if top_cashier_row else None,
             'peak_hour': peak_hour_row['hour'] if peak_hour_row else None,
@@ -766,8 +778,8 @@ class PosAnalyticsService(models.AbstractModel):
         return [
             {
                 'product_id': r['product_id'],
-                'product_name': r['product_name'],
-                'categ_name': r['categ_name'],
+                'product_name': _s(r['product_name']),
+                'categ_name': _s(r['categ_name']),
                 'qty_sold': round(float(r['qty_sold'] or 0), 2),
                 'gross_sales': round(float(r['gross_sales'] or 0), 2),
                 'net_sales': round(float(r['net_sales'] or 0), 2),
@@ -819,7 +831,7 @@ class PosAnalyticsService(models.AbstractModel):
         return [
             {
                 'categ_id': r['categ_id'],
-                'categ_name': r['categ_name'],
+                'categ_name': _s(r['categ_name']),
                 'qty_sold': round(float(r['qty_sold'] or 0), 2),
                 'gross_sales': round(float(r['gross_sales'] or 0), 2),
                 'net_sales': round(float(r['net_sales'] or 0), 2),
@@ -936,7 +948,7 @@ class PosAnalyticsService(models.AbstractModel):
         for r in self.env.cr.dictfetchall():
             uid = r['user_id']
             pay_map.setdefault(uid, []).append(
-                {'method': r['method_name'], 'amount': round(float(r['amount'] or 0), 2)}
+                {'method': _s(r['method_name']), 'amount': round(float(r['amount'] or 0), 2)}
             )
 
         result = []
@@ -1037,7 +1049,7 @@ class PosAnalyticsService(models.AbstractModel):
         return [
             {
                 'method_id': r['method_id'],
-                'method_name': r['method_name'],
+                'method_name': _s(r['method_name']),
                 'total_amount': round(float(r['total_amount'] or 0), 2),
                 'order_count': int(r['order_count'] or 0),
             }
@@ -1080,7 +1092,7 @@ class PosAnalyticsService(models.AbstractModel):
             GROUP BY o.config_id, pt.name
             ORDER BY o.config_id, SUM(l.qty) DESC
         """, args)
-        top_product_map = {r['config_id']: r['top_product']
+        top_product_map = {r['config_id']: _s(r['top_product'])
                            for r in self.env.cr.dictfetchall()}
 
         self.env.cr.execute(f"""
@@ -1192,8 +1204,8 @@ class PosAnalyticsService(models.AbstractModel):
             ],
             'discount_by_product': [
                 {
-                    'product_name': r['product_name'],
-                    'categ_name': r['categ_name'],
+                    'product_name': _s(r['product_name']),
+                    'categ_name': _s(r['categ_name']),
                     'discount_amount': round(float(r['discount_amount'] or 0), 2),
                 }
                 for r in disc_product
