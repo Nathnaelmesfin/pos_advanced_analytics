@@ -6,7 +6,7 @@
         <field name="model">res.config.settings</field>
         <field name="inherit_id" ref="base_setup.action_general_configuration"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('settings')]" position="inside">
+            <xpath expr="//form" position="inside">
                 <div class="app_settings_block"
                      data-string="POS Advanced Analytics"
                      string="POS Advanced Analytics"
