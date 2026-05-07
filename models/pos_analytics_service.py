@@ -539,7 +539,36 @@ class PosAnalyticsService(models.AbstractModel):
         }
 
     # -------------------------------------------------------------------------
-    # SALES TREND — respects group_by (C)
+    # REPORT BASIS — SQL expression helpers
+    # -------------------------------------------------------------------------
+
+    def _trend_sales_exprs(self, params):
+        """Return (positive_sales_expr, refund_expr) SQL fragments for report_basis."""
+        basis = params.get('report_basis', 'sales_incl_tax')
+        if basis == 'sales_excl_tax':
+            # Exclude tax component from both sales and refunds
+            pos_expr = "CASE WHEN o.amount_total >= 0 THEN (o.amount_total - o.amount_tax) ELSE 0 END"
+            ref_expr = "CASE WHEN o.amount_total < 0 THEN ABS(o.amount_total - o.amount_tax) ELSE 0 END"
+        elif basis == 'net_sales':
+            # Positive orders only; refunds shown separately so net = sales - refunds
+            pos_expr = "CASE WHEN o.amount_total >= 0 THEN o.amount_total ELSE 0 END"
+            ref_expr = "CASE WHEN o.amount_total < 0 THEN ABS(o.amount_total) ELSE 0 END"
+        else:
+            # sales_incl_tax (default)
+            pos_expr = "CASE WHEN o.amount_total >= 0 THEN o.amount_total ELSE 0 END"
+            ref_expr = "CASE WHEN o.amount_total < 0 THEN ABS(o.amount_total) ELSE 0 END"
+        return pos_expr, ref_expr
+
+    def _trend_label(self, basis):
+        """Human-readable y-axis label suffix for report_basis."""
+        return {
+            'sales_excl_tax': 'excl. tax',
+            'net_sales': 'net',
+            'qty_sold': 'qty',
+        }.get(basis, '')
+
+    # -------------------------------------------------------------------------
+    # SALES TREND — respects group_by (C) and report_basis (G1)
     # -------------------------------------------------------------------------
 
     @api.model
@@ -547,16 +576,13 @@ class PosAnalyticsService(models.AbstractModel):
         period = params['period']
         group_by = params.get('group_by', 'day')
 
-        # group_by overrides auto-detection for non-period-based wizard reports
+        # Resolve trunc / label_format from group_by
         if group_by == 'hour_of_day':
             trunc, label_format = 'hour', 'HH24":00"'
         elif group_by in ('day', 'day_of_week'):
-            # Use daily trunc regardless
             delta = (params['d_end'] - params['d_start']).days
-            if delta <= 1:
-                trunc, label_format = 'hour', 'HH24":00"'
-            else:
-                trunc, label_format = 'day', 'DD Mon'
+            trunc = 'hour' if delta <= 1 else 'day'
+            label_format = 'HH24":00"' if delta <= 1 else 'DD Mon'
         elif group_by == 'week':
             trunc, label_format = 'week', '"W"IW IYYY'
         elif group_by == 'month':
@@ -586,13 +612,20 @@ class PosAnalyticsService(models.AbstractModel):
                 else:
                     trunc, label_format = 'year', 'YYYY'
 
+        basis = params.get('report_basis', 'sales_incl_tax')
+
+        # qty_sold basis requires joining order lines — different query path
+        if basis == 'qty_sold':
+            return self._get_sales_trend_qty(params, trunc, label_format)
+
+        pos_expr, ref_expr = self._trend_sales_exprs(params)
         where, args = self._build_order_where(params)
         self.env.cr.execute(f"""
             SELECT
                 TO_CHAR(DATE_TRUNC(%s, o.date_order AT TIME ZONE 'UTC' AT TIME ZONE %s), %s) AS period_label,
                 DATE_TRUNC(%s, o.date_order AT TIME ZONE 'UTC' AT TIME ZONE %s) AS period_start,
-                COALESCE(SUM(CASE WHEN o.amount_total >= 0 THEN o.amount_total ELSE 0 END), 0) AS total_sales,
-                COALESCE(SUM(CASE WHEN o.amount_total < 0 THEN ABS(o.amount_total) ELSE 0 END), 0) AS total_refunds,
+                COALESCE(SUM({pos_expr}), 0) AS total_sales,
+                COALESCE(SUM({ref_expr}), 0) AS total_refunds,
                 COUNT(CASE WHEN o.amount_total >= 0 THEN 1 END) AS order_count
             FROM pos_order o
             WHERE {where}
@@ -611,21 +644,71 @@ class PosAnalyticsService(models.AbstractModel):
             for r in rows
         ]
 
-    def _get_sales_trend_by_session(self, params):
-        where, args = self._build_order_where(params)
+    def _get_sales_trend_qty(self, params, trunc, label_format):
+        """Trend grouped by qty sold per period (report_basis='qty_sold')."""
+        where, args = self._build_line_where(params)
         self.env.cr.execute(f"""
             SELECT
-                ps.name AS period_label,
-                ps.start_at AS period_start,
-                COALESCE(SUM(CASE WHEN o.amount_total >= 0 THEN o.amount_total ELSE 0 END), 0) AS total_sales,
-                COALESCE(SUM(CASE WHEN o.amount_total < 0 THEN ABS(o.amount_total) ELSE 0 END), 0) AS total_refunds,
-                COUNT(CASE WHEN o.amount_total >= 0 THEN 1 END) AS order_count
-            FROM pos_order o
-            JOIN pos_session ps ON ps.id = o.session_id
+                TO_CHAR(DATE_TRUNC(%s, o.date_order AT TIME ZONE 'UTC' AT TIME ZONE %s), %s) AS period_label,
+                DATE_TRUNC(%s, o.date_order AT TIME ZONE 'UTC' AT TIME ZONE %s) AS period_start,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.qty ELSE 0 END), 0) AS total_sales,
+                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.qty) ELSE 0 END), 0) AS total_refunds,
+                COUNT(DISTINCT CASE WHEN o.amount_total >= 0 THEN o.id END) AS order_count
+            FROM pos_order_line l
+            JOIN pos_order o ON o.id = l.order_id
             WHERE {where}
-            GROUP BY ps.id, ps.name, ps.start_at
-            ORDER BY ps.start_at
-        """, args)
+            GROUP BY period_start, period_label
+            ORDER BY period_start
+        """, [trunc, TZ_ADDIS, label_format, trunc, TZ_ADDIS] + args)
+        rows = self.env.cr.dictfetchall()
+        return [
+            {
+                'label': r['period_label'],
+                'total_sales': round(float(r['total_sales'] or 0), 2),
+                'total_refunds': round(float(r['total_refunds'] or 0), 2),
+                'net_sales': round(float(r['total_sales'] or 0) - float(r['total_refunds'] or 0), 2),
+                'order_count': int(r['order_count'] or 0),
+            }
+            for r in rows
+        ]
+
+    def _get_sales_trend_by_session(self, params):
+        """Trend grouped by POS session — respects report_basis."""
+        basis = params.get('report_basis', 'sales_incl_tax')
+
+        if basis == 'qty_sold':
+            where, args = self._build_line_where(params)
+            self.env.cr.execute(f"""
+                SELECT
+                    ps.name AS period_label,
+                    ps.start_at AS period_start,
+                    COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.qty ELSE 0 END), 0) AS total_sales,
+                    COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.qty) ELSE 0 END), 0) AS total_refunds,
+                    COUNT(DISTINCT CASE WHEN o.amount_total >= 0 THEN o.id END) AS order_count
+                FROM pos_order_line l
+                JOIN pos_order o ON o.id = l.order_id
+                JOIN pos_session ps ON ps.id = o.session_id
+                WHERE {where}
+                GROUP BY ps.id, ps.name, ps.start_at
+                ORDER BY ps.start_at
+            """, args)
+        else:
+            pos_expr, ref_expr = self._trend_sales_exprs(params)
+            where, args = self._build_order_where(params)
+            self.env.cr.execute(f"""
+                SELECT
+                    ps.name AS period_label,
+                    ps.start_at AS period_start,
+                    COALESCE(SUM({pos_expr}), 0) AS total_sales,
+                    COALESCE(SUM({ref_expr}), 0) AS total_refunds,
+                    COUNT(CASE WHEN o.amount_total >= 0 THEN 1 END) AS order_count
+                FROM pos_order o
+                JOIN pos_session ps ON ps.id = o.session_id
+                WHERE {where}
+                GROUP BY ps.id, ps.name, ps.start_at
+                ORDER BY ps.start_at
+            """, args)
+
         rows = self.env.cr.dictfetchall()
         return [
             {
@@ -644,19 +727,29 @@ class PosAnalyticsService(models.AbstractModel):
 
     @api.model
     def _get_top_products(self, params, limit=20):
+        basis = params.get('report_basis', 'sales_incl_tax')
+        order_col = {
+            'sales_excl_tax': 'net_sales',
+            'qty_sold':        'qty_sold',
+            'net_sales':       'after_refunds',
+        }.get(basis, 'gross_sales')
+
         where, args = self._build_line_where(params)
         self.env.cr.execute(f"""
             SELECT
                 l.product_id,
-                pt.name                                                                          AS product_name,
-                pc.name                                                                          AS categ_name,
-                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.qty ELSE 0 END), 0)                    AS qty_sold,
-                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal_incl ELSE 0 END), 0)    AS gross_sales,
-                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal ELSE 0 END), 0)         AS net_sales,
+                pt.name                                                                             AS product_name,
+                pc.name                                                                             AS categ_name,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.qty ELSE 0 END), 0)                       AS qty_sold,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal_incl ELSE 0 END), 0)       AS gross_sales,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal ELSE 0 END), 0)            AS net_sales,
                 COALESCE(SUM(CASE WHEN l.qty > 0
-                    THEN (l.price_unit * l.qty * l.discount / 100.0) ELSE 0 END), 0)           AS discount_amount,
-                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.qty) ELSE 0 END), 0)              AS refund_qty,
-                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.price_subtotal_incl) ELSE 0 END), 0) AS refund_amount
+                    THEN (l.price_unit * l.qty * l.discount / 100.0) ELSE 0 END), 0)              AS discount_amount,
+                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.qty) ELSE 0 END), 0)                 AS refund_qty,
+                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.price_subtotal_incl) ELSE 0 END), 0) AS refund_amount,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal_incl ELSE 0 END), 0)
+                    - COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.price_subtotal_incl) ELSE 0 END), 0)
+                                                                                                   AS after_refunds
             FROM pos_order_line l
             JOIN pos_order o ON o.id = l.order_id
             JOIN product_product pp ON pp.id = l.product_id
@@ -664,7 +757,7 @@ class PosAnalyticsService(models.AbstractModel):
             JOIN product_category pc ON pc.id = pt.categ_id
             WHERE {where}
             GROUP BY l.product_id, pt.name, pc.name
-            ORDER BY gross_sales DESC
+            ORDER BY {order_col} DESC
             LIMIT %s
         """, args + [limit])
         return [
@@ -688,18 +781,28 @@ class PosAnalyticsService(models.AbstractModel):
 
     @api.model
     def _get_top_categories(self, params, limit=20):
+        basis = params.get('report_basis', 'sales_incl_tax')
+        order_col = {
+            'sales_excl_tax': 'net_sales',
+            'qty_sold':        'qty_sold',
+            'net_sales':       'after_refunds',
+        }.get(basis, 'gross_sales')
+
         where, args = self._build_line_where(params)
         self.env.cr.execute(f"""
             SELECT
-                pc.id                                                                            AS categ_id,
-                pc.name                                                                          AS categ_name,
-                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.qty ELSE 0 END), 0)                    AS qty_sold,
-                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal_incl ELSE 0 END), 0)    AS gross_sales,
-                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal ELSE 0 END), 0)         AS net_sales,
+                pc.id                                                                             AS categ_id,
+                pc.name                                                                           AS categ_name,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.qty ELSE 0 END), 0)                     AS qty_sold,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal_incl ELSE 0 END), 0)     AS gross_sales,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal ELSE 0 END), 0)          AS net_sales,
                 COALESCE(SUM(CASE WHEN l.qty > 0
-                    THEN (l.price_unit * l.qty * l.discount / 100.0) ELSE 0 END), 0)           AS discount_amount,
-                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.qty) ELSE 0 END), 0)              AS refund_qty,
-                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.price_subtotal_incl) ELSE 0 END), 0) AS refund_amount
+                    THEN (l.price_unit * l.qty * l.discount / 100.0) ELSE 0 END), 0)            AS discount_amount,
+                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.qty) ELSE 0 END), 0)               AS refund_qty,
+                COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.price_subtotal_incl) ELSE 0 END), 0) AS refund_amount,
+                COALESCE(SUM(CASE WHEN l.qty > 0 THEN l.price_subtotal_incl ELSE 0 END), 0)
+                    - COALESCE(SUM(CASE WHEN l.qty < 0 THEN ABS(l.price_subtotal_incl) ELSE 0 END), 0)
+                                                                                                  AS after_refunds
             FROM pos_order_line l
             JOIN pos_order o ON o.id = l.order_id
             JOIN product_product pp ON pp.id = l.product_id
@@ -707,7 +810,7 @@ class PosAnalyticsService(models.AbstractModel):
             JOIN product_category pc ON pc.id = pt.categ_id
             WHERE {where}
             GROUP BY pc.id, pc.name
-            ORDER BY gross_sales DESC
+            ORDER BY {order_col} DESC
             LIMIT %s
         """, args + [limit])
         return [

@@ -778,6 +778,68 @@
 
     </t><!-- end non-management types -->
 
+    <!-- ══════════════════════════════════════════════════════════════════
+         RAW ORDERS ANNEX — rendered when include_raw_orders=True on any
+         report type other than daily_closing (which shows sessions inline).
+    ═══════════════════════════════════════════════════════════════════ -->
+    <t t-set="raw_closing" t-value="docs.get('closing_data', [])"/>
+    <t t-if="report_type != 'daily_closing' and raw_closing and wiz.get('include_raw_orders', False)">
+        <div style="page-break-before:always;"/>
+        <h4 style="color:#1F3864; border-bottom:3px solid #1F3864; padding-bottom:6px; margin-bottom:16px;">
+            Raw POS Sessions / Closing Data
+        </h4>
+        <t t-foreach="raw_closing" t-as="s">
+            <div class="mb-3" style="border:1px solid #BDD7EE; border-radius:4px; padding:10px;">
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <strong>Session:</strong> <t t-esc="s.get('session_name', '')"/><br/>
+                        <strong>Branch:</strong> <t t-esc="s.get('branch_name', '')"/><br/>
+                        <strong>Cashier:</strong> <t t-esc="s.get('cashier_name', '')"/><br/>
+                        <strong>State:</strong>
+                        <span t-att-style="'color:' + ('green' if s.get('session_state') == 'opened' else '#555') + '; font-weight:bold;'">
+                            <t t-esc="(s.get('session_state') or '').replace('_', ' ').title()"/>
+                        </span>
+                    </div>
+                    <div class="col-6">
+                        <strong>Opening:</strong> <t t-esc="s.get('opening_time', '') or '—'"/><br/>
+                        <strong>Closing:</strong> <t t-esc="s.get('closing_time', '') or '—'"/>
+                    </div>
+                </div>
+                <table class="table table-sm table-bordered" style="font-size:11px;">
+                    <tr>
+                        <th style="width:120px;">Total Sales</th>
+                        <td><t t-esc="'{:,.2f}'.format(s.get('total_sales', 0))"/></td>
+                        <th style="width:120px;">Net Sales</th>
+                        <td><t t-esc="'{:,.2f}'.format(s.get('net_sales', 0))"/></td>
+                        <th style="width:80px;">Orders</th>
+                        <td><t t-esc="s.get('total_orders', 0)"/></td>
+                    </tr>
+                    <tr>
+                        <th>Tax</th>
+                        <td><t t-esc="'{:,.2f}'.format(s.get('total_tax', 0))"/></td>
+                        <th>Refunds</th>
+                        <td><t t-esc="'{:,.2f}'.format(s.get('total_refunds', 0))"/></td>
+                        <th>Discounts</th>
+                        <td><t t-esc="'{:,.2f}'.format(s.get('total_discounts', 0))"/></td>
+                    </tr>
+                    <tr>
+                        <th>Avg Order</th>
+                        <td><t t-esc="'{:,.2f}'.format(s.get('avg_order_value', 0))"/></td>
+                        <th>Change Returned</th>
+                        <td colspan="3"><t t-esc="'{:,.2f}'.format(s.get('total_change_returned', 0))"/></td>
+                    </tr>
+                </table>
+                <t t-if="s.get('payment_methods')">
+                    <strong>Payment Methods:</strong>
+                    <span t-foreach="s.get('payment_methods', [])" t-as="pm">
+                        <t t-esc="pm.get('method', '')"/>: <t t-esc="'{:,.2f}'.format(pm.get('amount', 0))"/>
+                        <t t-if="not pm_last"> | </t>
+                    </span>
+                </t>
+            </div>
+        </t>
+    </t>
+
     <!-- ══ FOOTER NOTE ══════════════════════════════════════════════════════ -->
     <div class="row mt-4">
         <div class="col-12 text-muted" style="font-size:10px; border-top:1px solid #ddd; padding-top:8px;">

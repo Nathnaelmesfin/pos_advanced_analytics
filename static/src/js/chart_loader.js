@@ -1,8 +1,12 @@
 /** @odoo-module **/
 
 /**
- * Chart.js loader — fetches from CDN once and exposes window.Chart.
- * All chart render functions wait for this promise before drawing.
+ * Chart.js availability guard.
+ *
+ * chart.umd.min.js is declared in the module assets and loaded by the Odoo
+ * bundle BEFORE this file, so window.Chart is already set in normal operation.
+ * The CDN fallback only fires if the bundle somehow fails to deliver the lib
+ * (e.g. during standalone development outside Odoo's asset pipeline).
  */
 
 const CHART_JS_CDN =
@@ -13,19 +17,25 @@ let _chartReadyPromise = null;
 export function ensureChartJs() {
     if (_chartReadyPromise) return _chartReadyPromise;
 
+    // Bundled lib already loaded — fast path.
     if (window.Chart) {
         _chartReadyPromise = Promise.resolve(window.Chart);
         return _chartReadyPromise;
     }
 
-    _chartReadyPromise = new Promise((resolve, reject) => {
+    // CDN fallback (development / missing bundle scenario).
+    console.warn(
+        "[POS Analytics] Chart.js not found in bundle — loading from CDN as fallback."
+    );
+    _chartReadyPromise = new Promise((resolve) => {
         const script = document.createElement("script");
         script.src = CHART_JS_CDN;
         script.crossOrigin = "anonymous";
         script.onload = () => resolve(window.Chart);
-        script.onerror = (e) => {
-            console.error("[POS Analytics] Failed to load Chart.js from CDN:", e);
-            // Resolve with null so dashboard still loads — charts just stay blank
+        script.onerror = () => {
+            console.error(
+                "[POS Analytics] Failed to load Chart.js from CDN. Charts will not render."
+            );
             resolve(null);
         };
         document.head.appendChild(script);

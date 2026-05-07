@@ -158,25 +158,18 @@ export class PosAnalyticsDashboard extends Component {
 
     async _loadSettings() {
         try {
-            const orm = this.posAnalytics.orm;
-            const [ICP, enableTargets, enableWaiter, enableCashier, defaultPeriod] = await Promise.all([
-                orm.call("ir.config_parameter", "get_param", ["pos_advanced_analytics.refresh_interval", "60"]),
-                orm.call("ir.config_parameter", "get_param", ["pos_advanced_analytics.enable_targets", "True"]),
-                orm.call("ir.config_parameter", "get_param", ["pos_advanced_analytics.enable_waiter", "True"]),
-                orm.call("ir.config_parameter", "get_param", ["pos_advanced_analytics.enable_cashier", "True"]),
-                orm.call("ir.config_parameter", "get_param", ["pos_advanced_analytics.default_period", "today"]),
-            ]);
+            const s = await this.posAnalytics.getSettings();
             this.state.settings = {
-                refresh_interval: parseInt(ICP || "60", 10),
-                enable_targets: enableTargets !== "False",
-                enable_waiter: enableWaiter !== "False",
-                enable_cashier: enableCashier !== "False",
+                refresh_interval: s.refresh_interval ?? 60,
+                enable_targets:   s.enable_targets   ?? true,
+                enable_waiter:    s.enable_waiter     ?? true,
+                enable_cashier:   s.enable_cashier    ?? true,
             };
             if (!this.state.period || this.state.period === "today") {
-                this.state.period = defaultPeriod || "today";
+                this.state.period = s.default_period || "today";
             }
-        } catch (e) {
-            // non-critical
+        } catch {
+            // non-critical — defaults already set in state
         }
     }
 

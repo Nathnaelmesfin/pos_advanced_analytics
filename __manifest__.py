@@ -32,8 +32,6 @@
     'license': 'LGPL-3',
     'depends': [
         'point_of_sale',
-        'pos_restaurant',
-        'pos_hr',
         'web',
         'product',
         'hr',
@@ -56,6 +54,7 @@
     'assets': {
         'web.assets_backend': [
             'pos_advanced_analytics/static/src/scss/pos_analytics_dashboard.scss',
+            'pos_advanced_analytics/static/lib/chart.umd.min.js',
             'pos_advanced_analytics/static/src/js/chart_loader.js',
             'pos_advanced_analytics/static/src/js/pos_analytics_service.js',
             'pos_advanced_analytics/static/src/js/pos_analytics_dashboard.js',
