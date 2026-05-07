@@ -155,7 +155,7 @@ class PosAnalyticsService(models.AbstractModel):
                 ps.id                                   AS session_id,
                 ps.name                                 AS session_name,
                 pc.name                                 AS branch_name,
-                ru.name                                 AS cashier_name,
+                rp.name                                 AS cashier_name,
                 ps.state                                AS session_state,
                 ps.start_at                             AS opening_time,
                 ps.stop_at                              AS closing_time,
@@ -169,8 +169,9 @@ class PosAnalyticsService(models.AbstractModel):
             JOIN pos_session ps ON ps.id = o.session_id
             JOIN pos_config pc ON pc.id = o.config_id
             JOIN res_users ru ON ru.id = ps.user_id
+            JOIN res_partner rp ON rp.id = ru.partner_id
             WHERE {where}
-            GROUP BY ps.id, ps.name, pc.name, ru.name, ps.state, ps.start_at, ps.stop_at
+            GROUP BY ps.id, ps.name, pc.name, rp.name, ps.state, ps.start_at, ps.stop_at
             ORDER BY ps.start_at
         """, args)
         sessions = self.env.cr.dictfetchall()
@@ -456,13 +457,14 @@ class PosAnalyticsService(models.AbstractModel):
         best_categ_row = self.env.cr.dictfetchone()
 
         self.env.cr.execute(f"""
-            SELECT ru.name AS cashier_name, SUM(o.amount_total) AS total_sales
+            SELECT rp.name AS cashier_name, SUM(o.amount_total) AS total_sales
             FROM pos_order o
             JOIN res_users ru ON ru.id = o.user_id
+            JOIN res_partner rp ON rp.id = ru.partner_id
             WHERE {where}
               AND o.amount_total >= 0
               AND o.user_id IS NOT NULL
-            GROUP BY ru.name
+            GROUP BY rp.name
             ORDER BY total_sales DESC
             LIMIT 1
         """, args)
@@ -907,16 +909,17 @@ class PosAnalyticsService(models.AbstractModel):
         self.env.cr.execute(f"""
             SELECT
                 ru.id                                                                            AS user_id,
-                ru.name                                                                          AS cashier_name,
+                rp.name                                                                          AS cashier_name,
                 COALESCE(SUM(CASE WHEN o.amount_total >= 0 THEN o.amount_total ELSE 0 END), 0)  AS total_collected,
                 COUNT(CASE WHEN o.amount_total >= 0 THEN 1 END)                                  AS total_orders,
                 COALESCE(AVG(CASE WHEN o.amount_total >= 0 THEN o.amount_total END), 0)          AS avg_ticket,
                 COALESCE(SUM(CASE WHEN o.amount_total < 0 THEN ABS(o.amount_total) ELSE 0 END), 0) AS total_refunds
             FROM pos_order o
             JOIN res_users ru ON ru.id = o.user_id
+            JOIN res_partner rp ON rp.id = ru.partner_id
             WHERE {where}
               AND o.user_id IS NOT NULL
-            GROUP BY ru.id, ru.name
+            GROUP BY ru.id, rp.name
             ORDER BY total_collected DESC
         """, args)
         cashier_rows = self.env.cr.dictfetchall()
@@ -1157,15 +1160,16 @@ class PosAnalyticsService(models.AbstractModel):
 
         self.env.cr.execute(f"""
             SELECT
-                ru.name AS cashier_name,
+                rp.name AS cashier_name,
                 COALESCE(SUM(CASE WHEN l.discount > 0
                     THEN (l.price_unit * l.qty * l.discount / 100.0) ELSE 0 END), 0) AS discount_amount
             FROM pos_order_line l
             JOIN pos_order o ON o.id = l.order_id
             JOIN res_users ru ON ru.id = o.user_id
+            JOIN res_partner rp ON rp.id = ru.partner_id
             WHERE {where}
               AND l.discount > 0
-            GROUP BY ru.name
+            GROUP BY rp.name
             ORDER BY discount_amount DESC
             LIMIT 20
         """, args)
