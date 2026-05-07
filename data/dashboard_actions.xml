@@ -21,7 +21,7 @@
     <record id="action_pos_analytics_targets" model="ir.actions.act_window">
         <field name="name">Sales Targets</field>
         <field name="res_model">pos.analytics.target</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="context">{'search_default_active': 1}</field>
     </record>
 
@@ -30,6 +30,7 @@
         <field name="name">Analytics Configuration</field>
         <field name="res_model">res.config.settings</field>
         <field name="view_mode">form</field>
+        <field name="view_id" ref="pos_advanced_analytics.view_pos_analytics_config_form"/>
         <field name="target">inline</field>
         <field name="context">{'module': 'pos_advanced_analytics'}</field>
     </record>
