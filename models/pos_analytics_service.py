@@ -75,6 +75,9 @@ class PosAnalyticsService(models.AbstractModel):
         try:
             params = self._prepare_params(filters)
             pos_hr_available = self._check_pos_hr()
+            # Respect the enable_targets flag sent from the dashboard so we
+            # skip the target SQL entirely when targets are disabled.
+            enable_targets = filters.get('enable_targets', True)
             result = {
                 'kpis': self._get_kpis(params),
                 'sales_trend': self._get_sales_trend(params),
@@ -86,7 +89,7 @@ class PosAnalyticsService(models.AbstractModel):
                 'payment_methods': self._get_payment_methods(params),
                 'branch_comparison': self._get_branch_comparison(params),
                 'refund_discount_summary': self._get_refund_discount_summary(params),
-                'target_summary': self._get_target_summary(params),
+                'target_summary': self._get_target_summary(params) if enable_targets else [],
                 'pos_hr_available': pos_hr_available,
                 'waiter_performance': self._get_waiter_performance(params) if pos_hr_available else [],
             }

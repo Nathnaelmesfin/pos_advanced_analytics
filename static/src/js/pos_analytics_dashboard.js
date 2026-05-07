@@ -159,14 +159,20 @@ export class PosAnalyticsDashboard extends Component {
     async _loadSettings() {
         try {
             const s = await this.posAnalytics.getSettings();
+            const enableTargets = s.enable_targets ?? true;
             this.state.settings = {
                 refresh_interval: s.refresh_interval ?? 60,
-                enable_targets:   s.enable_targets   ?? true,
-                enable_waiter:    s.enable_waiter     ?? true,
-                enable_cashier:   s.enable_cashier    ?? true,
+                enable_targets:   enableTargets,
+                enable_waiter:    s.enable_waiter  ?? true,
+                enable_cashier:   s.enable_cashier ?? true,
             };
             if (!this.state.period || this.state.period === "today") {
                 this.state.period = s.default_period || "today";
+            }
+            // If the targets tab is active but targets are now disabled, fall
+            // back to overview so the user doesn't see a blank tab panel.
+            if (!enableTargets && this.state.activeTab === "targets") {
+                this.state.activeTab = "overview";
             }
         } catch {
             // non-critical — defaults already set in state
@@ -223,6 +229,8 @@ export class PosAnalyticsDashboard extends Component {
             order_state: this.state.order_state,
             group_by: this.state.group_by,
             company_id: this.state.company_id,
+            // Tell the backend to skip target SQL when targets are disabled.
+            enable_targets: this.state.settings.enable_targets,
         };
     }
 
