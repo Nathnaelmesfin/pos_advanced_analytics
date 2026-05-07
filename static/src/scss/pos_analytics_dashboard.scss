@@ -386,7 +386,9 @@ $pa-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .pa-half {
-    // used inside pa-row
+    min-width: 0;
+    overflow: hidden;
+    flex: 1 1 0;
 }
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
@@ -609,3 +611,183 @@ $pa-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         padding-bottom: 0;
     }
 }
+
+// ─── Pagination / Load More ────────────────────────────────────────────────────
+
+.pa-load-more {
+    text-align: center;
+    padding: 12px 0 4px;
+
+    button {
+        background: $pa-card-bg;
+        border: 1px solid $pa-border;
+        border-radius: 6px;
+        padding: 7px 20px;
+        font-size: 13px;
+        color: $pa-secondary;
+        cursor: pointer;
+        transition: background 0.15s;
+
+        &:hover { background: #eef3fa; }
+        &:disabled { opacity: 0.4; cursor: default; }
+    }
+
+    span {
+        margin-left: 10px;
+        font-size: 12px;
+        color: $pa-text-muted;
+    }
+}
+
+// ─── Daily Closing Cards ──────────────────────────────────────────────────────
+
+.pa-session-card {
+    background: $pa-card-bg;
+    border-radius: $pa-radius;
+    box-shadow: $pa-shadow;
+    margin: 0 24px 14px;
+    padding: 16px 20px;
+    border-left: 4px solid $pa-secondary;
+
+    &.pa-session-open { border-left-color: $pa-green; }
+    &.pa-session-closed { border-left-color: $pa-gray; }
+}
+
+.pa-session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+
+    h4 {
+        margin: 0 0 2px;
+        font-size: 14px;
+        font-weight: 600;
+        color: $pa-primary;
+    }
+
+    span {
+        font-size: 12px;
+        color: $pa-text-muted;
+    }
+}
+
+.pa-session-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: $pa-text-muted;
+
+    strong { color: $pa-text; }
+}
+
+.pa-session-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.pa-session-kpi {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: center;
+
+    .pa-session-kpi-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: $pa-text-muted;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+    }
+
+    .pa-session-kpi-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: $pa-primary;
+    }
+}
+
+.pa-session-payments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+// ─── Company selector chip ────────────────────────────────────────────────────
+
+.pa-company-filter {
+    .pa-company-select {
+        border: 1px solid $pa-border;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 13px;
+        color: $pa-text;
+        background: #fafafa;
+        outline: none;
+
+        &:focus {
+            border-color: $pa-secondary;
+            box-shadow: 0 0 0 2px rgba(46, 117, 182, 0.15);
+        }
+    }
+}
+
+// ─── Notification badge on header ─────────────────────────────────────────────
+
+.pa-notify-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    .pa-notify-dot {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 8px;
+        height: 8px;
+        background: $pa-red;
+        border-radius: 50%;
+        border: 2px solid $pa-primary;
+    }
+}
+
+// ─── Executive summary (Management Summary PDF layout helpers) ─────────────────
+
+.pa-exec-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.pa-risk-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+
+    &.pa-risk-ok   { background: #f0fae8; color: $pa-green; }
+    &.pa-risk-warn { background: #fffde8; color: darken($pa-yellow, 20%); }
+    &.pa-risk-bad  { background: #fff0f0; color: $pa-red; }
+}
+
+// ─── pos_hr missing message ───────────────────────────────────────────────────
+
+.pa-feature-unavailable {
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: $pa-radius;
+    padding: 16px 20px;
+    margin: 0 24px 14px;
+    font-size: 13px;
+    color: #7f6200;
+
+    strong { display: block; margin-bottom: 4px; }
+}
+

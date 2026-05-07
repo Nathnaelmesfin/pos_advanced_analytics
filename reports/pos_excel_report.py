@@ -52,7 +52,8 @@ class PosAnalyticsExcelReport(models.AbstractModel):
         kpis = data.get('kpis', {})
 
         # ── Sheets ────────────────────────────────────────────────────────────
-        self._write_summary_sheet(workbook, fmt, meta, kpis, data)
+        if not wizard or wizard.include_summary:
+            self._write_summary_sheet(workbook, fmt, meta, kpis, data)
         self._write_daily_sales_sheet(workbook, fmt, meta, data.get('sales_trend', []))
         self._write_product_sales_sheet(workbook, fmt, meta, data.get('top_products', []))
         self._write_category_sales_sheet(workbook, fmt, meta, data.get('top_categories', []))
@@ -78,7 +79,7 @@ class PosAnalyticsExcelReport(models.AbstractModel):
     # ── Format builder ────────────────────────────────────────────────────────
 
     def _build_formats(self, wb, wizard):
-        currency = self.env.company.currency_id.name or 'ETB'
+        currency = self.env.company.currency_id.name or ''
         num_fmt = f'#,##0.00 "{currency}"'
         return {
             'title': wb.add_format({'bold': True, 'font_size': 14, 'font_color': '#1F3864', 'bg_color': '#FFFFFF'}),
@@ -135,6 +136,11 @@ class PosAnalyticsExcelReport(models.AbstractModel):
             ('Total Discounts', kpis.get('total_discounts', 0)),
             ('Total Refunds', kpis.get('total_refunds', 0)),
             ('Refund Orders', kpis.get('refund_orders', 0)),
+            ('Refund Rate (%)', kpis.get('refund_rate', 0)),
+            ('Discount Rate (%)', kpis.get('discount_rate', 0)),
+            ('Total Sessions', kpis.get('total_sessions', 0)),
+            ('Avg Items / Order', kpis.get('avg_items_per_order', 0)),
+            ('Total Change Returned', kpis.get('total_change_returned', 0)),
             ('Cash Sales', kpis.get('cash_sales', 0)),
             ('Bank / Card Sales', kpis.get('bank_card_sales', 0)),
             ('Mobile Money Sales', kpis.get('mobile_money_sales', 0)),

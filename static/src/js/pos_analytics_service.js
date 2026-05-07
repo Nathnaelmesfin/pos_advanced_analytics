@@ -38,6 +38,19 @@ export class PosAnalyticsService {
     }
 
     /**
+     * Fetch daily closing / Z-report data.
+     * @param {Object} filters
+     * @returns {Promise<Array>}
+     */
+    async getDailyClosingData(filters = {}) {
+        return this.orm.call(
+            "pos.analytics.service",
+            "get_daily_closing_data",
+            [filters],
+        );
+    }
+
+    /**
      * Fetch analytics settings from ir.config_parameter.
      * @returns {Promise<Object>}
      */

@@ -122,6 +122,8 @@ class PosAnalyticsReportWizard(models.TransientModel):
             'product_ids': self.product_ids.ids,
             'payment_method_ids': self.payment_method_ids.ids,
             'report_basis': self.report_basis,
+            'group_by': self.group_by,
+            'order_state': self.order_state,
         }
 
     # -------------------------------------------------------------------------
@@ -138,12 +140,12 @@ class PosAnalyticsReportWizard(models.TransientModel):
             'report_type_key': self.report_type,
             'group_by': self.group_by,
             'report_basis': self.report_basis,
+            'include_summary': self.include_summary,
             'branches': ', '.join(self.pos_config_ids.mapped('name')) or 'All Branches',
             'generated_by': self.env.user.name,
             'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         }
-        # Also get closing data if daily_closing
-        if self.report_type == 'daily_closing':
+        if self.report_type == 'daily_closing' or self.include_raw_orders:
             data['closing_data'] = self.env['pos.analytics.service'].get_daily_closing_data(filters)
 
         return self.env.ref('pos_advanced_analytics.action_pos_analytics_pdf_report').report_action(
@@ -158,7 +160,7 @@ class PosAnalyticsReportWizard(models.TransientModel):
         filters = self._build_filters()
         data = self.env['pos.analytics.service'].get_dashboard_data(filters)
         closing_data = []
-        if self.report_type == 'daily_closing':
+        if self.include_raw_orders or self.report_type == 'daily_closing':
             closing_data = self.env['pos.analytics.service'].get_daily_closing_data(filters)
 
         ExcelReport = self.env['pos.analytics.excel.report']

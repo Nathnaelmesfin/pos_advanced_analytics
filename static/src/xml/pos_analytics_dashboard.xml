@@ -14,6 +14,9 @@
                 </span>
             </div>
             <div class="pa-header-right">
+                <button class="pa-btn pa-btn-outline" t-on-click="onResetFilters">
+                    &#10005; Reset Filters
+                </button>
                 <button class="pa-btn pa-btn-outline" t-on-click="onRefresh">
                     &#8635; Refresh
                 </button>
@@ -25,6 +28,22 @@
 
         <!-- ══ FILTER BAR ═════════════════════════════════════════════════ -->
         <div class="pa-filters">
+
+            <!-- Company (multi-company) -->
+            <t t-if="companies.length > 1">
+                <div class="pa-filter-group pa-company-filter">
+                    <label>Company</label>
+                    <select class="pa-company-select" t-on-change="onCompanyChange">
+                        <t t-foreach="companies" t-as="co" t-key="co.id">
+                            <option t-att-value="co.id"
+                                    t-att-selected="state.company_id === co.id">
+                                <t t-esc="co.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+            </t>
+
             <div class="pa-filter-group">
                 <label>Period</label>
                 <select t-on-change="onPeriodChange">
@@ -71,14 +90,16 @@
                 </select>
             </div>
 
-            <div class="pa-filter-group">
-                <label>Waiter</label>
-                <select multiple="multiple" t-on-change="onWaiterChange" class="pa-multi-select">
-                    <t t-foreach="waiters" t-as="emp" t-key="emp.id">
-                        <option t-att-value="emp.id"><t t-esc="emp.name"/></option>
-                    </t>
-                </select>
-            </div>
+            <t t-if="posHrAvailable">
+                <div class="pa-filter-group">
+                    <label>Waiter</label>
+                    <select multiple="multiple" t-on-change="onWaiterChange" class="pa-multi-select">
+                        <t t-foreach="waiters" t-as="emp" t-key="emp.id">
+                            <option t-att-value="emp.id"><t t-esc="emp.name"/></option>
+                        </t>
+                    </select>
+                </div>
+            </t>
 
             <div class="pa-filter-group">
                 <label>Category</label>
@@ -95,6 +116,29 @@
                     <t t-foreach="paymentMethodOptions" t-as="pm" t-key="pm.id">
                         <option t-att-value="pm.id"><t t-esc="pm.name"/></option>
                     </t>
+                </select>
+            </div>
+
+            <div class="pa-filter-group">
+                <label>Order State</label>
+                <select t-on-change="onOrderStateChange">
+                    <option value="all" t-att-selected="state.order_state === 'all'">All Valid</option>
+                    <option value="paid" t-att-selected="state.order_state === 'paid'">Paid</option>
+                    <option value="done" t-att-selected="state.order_state === 'done'">Done</option>
+                    <option value="invoiced" t-att-selected="state.order_state === 'invoiced'">Invoiced</option>
+                </select>
+            </div>
+
+            <div class="pa-filter-group">
+                <label>Group By</label>
+                <select t-on-change="onGroupByChange">
+                    <option value="day" t-att-selected="state.group_by === 'day'">Day</option>
+                    <option value="week" t-att-selected="state.group_by === 'week'">Week</option>
+                    <option value="month" t-att-selected="state.group_by === 'month'">Month</option>
+                    <option value="year" t-att-selected="state.group_by === 'year'">Year</option>
+                    <option value="hour_of_day" t-att-selected="state.group_by === 'hour_of_day'">Hour of Day</option>
+                    <option value="day_of_week" t-att-selected="state.group_by === 'day_of_week'">Day of Week</option>
+                    <option value="pos_session" t-att-selected="state.group_by === 'pos_session'">POS Session</option>
                 </select>
             </div>
 
@@ -147,6 +191,8 @@
                     <button t-att-class="'pa-tab' + (state.activeTab === 'targets' ? ' active' : '')"
                             t-on-click="() => this.onTabChange('targets')">Targets</button>
                 </t>
+                <button t-att-class="'pa-tab' + (state.activeTab === 'daily_closing' ? ' active' : '')"
+                        t-on-click="() => this.onTabChange('daily_closing')">&#128203; Daily Closing</button>
             </div>
 
             <!-- ════════════════════════════════════════════════════════════
@@ -154,7 +200,7 @@
             ═════════════════════════════════════════════════════════════ -->
             <t t-if="state.activeTab === 'overview'">
 
-                <!-- KPI Cards Row 1 -->
+                <!-- KPI Cards Row 1: Core metrics -->
                 <div class="pa-kpi-grid">
                     <div class="pa-kpi-card pa-kpi-blue">
                         <div class="pa-kpi-label">Total Sales</div>
@@ -191,7 +237,31 @@
                     </div>
                 </div>
 
-                <!-- KPI Cards Row 2: Payment breakdown -->
+                <!-- KPI Cards Row 2: 5 new KPIs -->
+                <div class="pa-kpi-grid">
+                    <div class="pa-kpi-card pa-kpi-red">
+                        <div class="pa-kpi-label">Refund Rate</div>
+                        <div class="pa-kpi-value"><t t-esc="pctFmt(kpis.refund_rate)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-orange">
+                        <div class="pa-kpi-label">Discount Rate</div>
+                        <div class="pa-kpi-value"><t t-esc="pctFmt(kpis.discount_rate)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-blue">
+                        <div class="pa-kpi-label">Total Sessions</div>
+                        <div class="pa-kpi-value"><t t-esc="kpis.total_sessions || 0"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-green">
+                        <div class="pa-kpi-label">Avg Items / Order</div>
+                        <div class="pa-kpi-value"><t t-esc="numFmt(kpis.avg_items_per_order)"/></div>
+                    </div>
+                    <div class="pa-kpi-card pa-kpi-gray">
+                        <div class="pa-kpi-label">Change Returned</div>
+                        <div class="pa-kpi-value"><t t-esc="fmt(kpis.total_change_returned)"/></div>
+                    </div>
+                </div>
+
+                <!-- KPI Cards Row 3: Payment breakdown -->
                 <div class="pa-kpi-grid">
                     <div class="pa-kpi-card pa-kpi-green">
                         <div class="pa-kpi-label">Cash Sales</div>
@@ -211,7 +281,7 @@
                     </div>
                 </div>
 
-                <!-- KPI Row 3: Highlights -->
+                <!-- KPI Row 4: Highlights -->
                 <div class="pa-kpi-grid">
                     <div class="pa-kpi-card pa-kpi-highlight">
                         <div class="pa-kpi-label">&#127942; Best Product</div>
@@ -305,6 +375,13 @@
                                 </t>
                             </tbody>
                         </table>
+                        <t t-if="topProducts.length &lt; topProductsTotal">
+                            <div class="pa-load-more">
+                                <button class="pa-btn pa-btn-outline" t-on-click="onLoadMoreProducts">
+                                    Load More (<t t-esc="topProductsTotal - topProducts.length"/> remaining)
+                                </button>
+                            </div>
+                        </t>
                     </div>
                 </div>
 
@@ -341,6 +418,13 @@
                                 </t>
                             </tbody>
                         </table>
+                        <t t-if="topCategories.length &lt; topCategoriesTotal">
+                            <div class="pa-load-more">
+                                <button class="pa-btn pa-btn-outline" t-on-click="onLoadMoreCategories">
+                                    Load More (<t t-esc="topCategoriesTotal - topCategories.length"/> remaining)
+                                </button>
+                            </div>
+                        </t>
                     </div>
                 </div>
             </t>
@@ -352,40 +436,54 @@
 
                 <!-- Waiter Performance -->
                 <t t-if="state.settings.enable_waiter">
-                    <div class="pa-table-card">
-                        <div class="pa-table-header"><h4>Waiter Performance</h4></div>
-                        <div class="pa-table-body">
-                            <table class="pa-table">
-                                <thead>
-                                    <tr>
-                                        <th>Waiter</th>
-                                        <th class="text-right">Total Sales</th>
-                                        <th class="text-right">Orders</th>
-                                        <th class="text-right">Avg Order</th>
-                                        <th class="text-right">Qty Sold</th>
-                                        <th class="text-right">Refunds</th>
-                                        <th class="text-right">Discounts</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <t t-if="waiterPerf.length === 0">
-                                        <tr><td colspan="7" class="pa-empty">No waiter data. Ensure employees are assigned to POS orders.</td></tr>
-                                    </t>
-                                    <t t-foreach="waiterPerf" t-as="w" t-key="w.employee_id">
-                                        <tr>
-                                            <td><t t-esc="w.waiter_name"/></td>
-                                            <td class="text-right"><t t-esc="fmt(w.total_sales)"/></td>
-                                            <td class="text-right"><t t-esc="w.total_orders"/></td>
-                                            <td class="text-right"><t t-esc="fmt(w.avg_order_value)"/></td>
-                                            <td class="text-right"><t t-esc="numFmt(w.qty_sold)"/></td>
-                                            <td class="text-right"><t t-esc="fmt(w.total_refunds)"/></td>
-                                            <td class="text-right"><t t-esc="fmt(w.total_discounts)"/></td>
-                                        </tr>
-                                    </t>
-                                </tbody>
-                            </table>
+                    <t t-if="!posHrAvailable">
+                        <div class="pa-feature-unavailable">
+                            <p>&#9888; Waiter analytics require the <strong>pos_hr</strong> module. Install it to enable employee tracking on POS orders.</p>
                         </div>
-                    </div>
+                    </t>
+                    <t t-else="">
+                        <div class="pa-table-card">
+                            <div class="pa-table-header"><h4>Waiter Performance</h4></div>
+                            <div class="pa-table-body">
+                                <table class="pa-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Waiter</th>
+                                            <th class="text-right">Total Sales</th>
+                                            <th class="text-right">Orders</th>
+                                            <th class="text-right">Avg Order</th>
+                                            <th class="text-right">Qty Sold</th>
+                                            <th class="text-right">Refunds</th>
+                                            <th class="text-right">Discounts</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-if="waiterPerf.length === 0">
+                                            <tr><td colspan="7" class="pa-empty">No waiter data. Ensure employees are assigned to POS orders.</td></tr>
+                                        </t>
+                                        <t t-foreach="waiterPerf" t-as="w" t-key="w.employee_id">
+                                            <tr>
+                                                <td><t t-esc="w.waiter_name"/></td>
+                                                <td class="text-right"><t t-esc="fmt(w.total_sales)"/></td>
+                                                <td class="text-right"><t t-esc="w.total_orders"/></td>
+                                                <td class="text-right"><t t-esc="fmt(w.avg_order_value)"/></td>
+                                                <td class="text-right"><t t-esc="numFmt(w.qty_sold)"/></td>
+                                                <td class="text-right"><t t-esc="fmt(w.total_refunds)"/></td>
+                                                <td class="text-right"><t t-esc="fmt(w.total_discounts)"/></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                                <t t-if="waiterPerf.length &lt; waiterPerfTotal">
+                                    <div class="pa-load-more">
+                                        <button class="pa-btn pa-btn-outline" t-on-click="onLoadMoreWaiters">
+                                            Load More (<t t-esc="waiterPerfTotal - waiterPerf.length"/> remaining)
+                                        </button>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
                 </t>
 
                 <!-- Cashier Performance -->
@@ -426,6 +524,13 @@
                                     </t>
                                 </tbody>
                             </table>
+                            <t t-if="cashierPerf.length &lt; cashierPerfTotal">
+                                <div class="pa-load-more">
+                                    <button class="pa-btn pa-btn-outline" t-on-click="onLoadMoreCashiers">
+                                        Load More (<t t-esc="cashierPerfTotal - cashierPerf.length"/> remaining)
+                                    </button>
+                                </div>
+                            </t>
                         </div>
                     </div>
                 </t>
@@ -497,7 +602,6 @@
                     </div>
                 </div>
 
-                <!-- Peak Hours Table -->
                 <div class="pa-table-card">
                     <div class="pa-table-header"><h4>Hourly Breakdown</h4></div>
                     <div class="pa-table-body">
@@ -521,7 +625,6 @@
                     </div>
                 </div>
 
-                <!-- Peak Days Table -->
                 <div class="pa-table-card">
                     <div class="pa-table-header"><h4>Daily Breakdown</h4></div>
                     <div class="pa-table-body">
@@ -725,9 +828,94 @@
                 </t>
             </t>
 
+            <!-- ════════════════════════════════════════════════════════════
+                 TAB: DAILY CLOSING (8th tab — live Z-report)
+            ═════════════════════════════════════════════════════════════ -->
+            <t t-if="state.activeTab === 'daily_closing'">
+                <t t-if="state.loadingClosing">
+                    <div class="pa-loading">
+                        <div class="pa-spinner"/>
+                        <p>Loading session data…</p>
+                    </div>
+                </t>
+                <t t-elif="state.dailyClosing.length === 0">
+                    <div class="pa-empty-state">
+                        <div class="pa-empty-icon">&#128203;</div>
+                        <h3>No Sessions Found</h3>
+                        <p>No POS sessions match the selected date range and filters.</p>
+                    </div>
+                </t>
+                <t t-else="">
+                    <t t-foreach="state.dailyClosing" t-as="s" t-key="s.session_id">
+                        <div class="pa-session-card">
+                            <div class="pa-session-header">
+                                <div class="pa-session-meta">
+                                    <strong><t t-esc="s.session_name"/></strong>
+                                    <span class="pa-badge"><t t-esc="s.branch_name"/></span>
+                                    <span class="pa-badge"><t t-esc="s.cashier_name"/></span>
+                                </div>
+                                <div>
+                                    <span t-att-class="'pa-badge ' + (s.session_state === 'opened' ? 'pa-badge-green' : 'pa-badge-gray')">
+                                        <t t-esc="sessionStateLabel(s.session_state)"/>
+                                    </span>
+                                    <span class="pa-session-time">
+                                        <t t-esc="s.opening_time ? s.opening_time.substring(0, 19).replace('T', ' ') : '—'"/>
+                                        <t t-if="s.closing_time">
+                                            → <t t-esc="s.closing_time.substring(0, 19).replace('T', ' ')"/>
+                                        </t>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="pa-session-kpis">
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Total Sales</div>
+                                    <div class="pa-kpi-value"><t t-esc="fmt(s.total_sales)"/></div>
+                                </div>
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Net Sales</div>
+                                    <div class="pa-kpi-value"><t t-esc="fmt(s.net_sales)"/></div>
+                                </div>
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Orders</div>
+                                    <div class="pa-kpi-value"><t t-esc="s.total_orders"/></div>
+                                </div>
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Avg Order</div>
+                                    <div class="pa-kpi-value"><t t-esc="fmt(s.avg_order_value)"/></div>
+                                </div>
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Tax</div>
+                                    <div class="pa-kpi-value"><t t-esc="fmt(s.total_tax)"/></div>
+                                </div>
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Refunds</div>
+                                    <div class="pa-kpi-value pa-text-red"><t t-esc="fmt(s.total_refunds)"/></div>
+                                </div>
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Discounts</div>
+                                    <div class="pa-kpi-value pa-text-orange"><t t-esc="fmt(s.total_discounts)"/></div>
+                                </div>
+                                <div class="pa-session-kpi">
+                                    <div class="pa-kpi-label">Change Returned</div>
+                                    <div class="pa-kpi-value"><t t-esc="fmt(s.total_change_returned)"/></div>
+                                </div>
+                            </div>
+                            <t t-if="s.payment_methods and s.payment_methods.length > 0">
+                                <div class="pa-session-payments">
+                                    <strong>Payments:</strong>
+                                    <t t-foreach="s.payment_methods" t-as="pm" t-key="pm.method">
+                                        <span class="pa-badge"><t t-esc="pm.method"/>: <t t-esc="numFmt(pm.amount)"/></span>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </t>
+
         </t>
 
-        <!-- ══ EMPTY STATE (no data at all) ══════════════════════════════ -->
+        <!-- ══ EMPTY STATE ════════════════════════════════════════════════ -->
         <t t-elif="!state.loading and !state.error">
             <div class="pa-empty-state">
                 <div class="pa-empty-icon">&#128202;</div>
