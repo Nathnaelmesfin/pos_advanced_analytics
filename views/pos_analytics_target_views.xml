@@ -6,7 +6,7 @@
         <field name="name">pos.analytics.target.list</field>
         <field name="model">pos.analytics.target</field>
         <field name="arch" type="xml">
-            <list string="Sales Targets" decoration-muted="not active">
+            <tree string="Sales Targets" decoration-muted="not active">
                 <field name="name"/>
                 <field name="target_level"/>
                 <field name="pos_config_id"/>
@@ -18,7 +18,7 @@
                 <field name="target_orders"/>
                 <field name="active" widget="boolean_toggle"/>
                 <field name="company_id" groups="base.group_multi_company"/>
-            </list>
+            </tree>
         </field>
     </record>
 
