@@ -433,27 +433,27 @@ export class PosAnalyticsDashboard extends Component {
     }
 
     onBranchChange(ev) {
-        this.state.pos_config_ids = Array.from(ev.target.selectedOptions).map((o) => parseInt(o.value, 10));
+        this.state.pos_config_ids = ev.target.value ? [parseInt(ev.target.value, 10)] : [];
         this._loadData();
     }
 
     onCashierChange(ev) {
-        this.state.cashier_ids = Array.from(ev.target.selectedOptions).map((o) => parseInt(o.value, 10));
+        this.state.cashier_ids = ev.target.value ? [parseInt(ev.target.value, 10)] : [];
         this._loadData();
     }
 
     onWaiterChange(ev) {
-        this.state.waiter_ids = Array.from(ev.target.selectedOptions).map((o) => parseInt(o.value, 10));
+        this.state.waiter_ids = ev.target.value ? [parseInt(ev.target.value, 10)] : [];
         this._loadData();
     }
 
     onCategoryChange(ev) {
-        this.state.product_category_ids = Array.from(ev.target.selectedOptions).map((o) => parseInt(o.value, 10));
+        this.state.product_category_ids = ev.target.value ? [parseInt(ev.target.value, 10)] : [];
         this._loadData();
     }
 
     onPaymentMethodChange(ev) {
-        this.state.payment_method_ids = Array.from(ev.target.selectedOptions).map((o) => parseInt(o.value, 10));
+        this.state.payment_method_ids = ev.target.value ? [parseInt(ev.target.value, 10)] : [];
         this._loadData();
     }
 

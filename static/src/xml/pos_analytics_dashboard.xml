@@ -74,7 +74,8 @@
 
             <div class="pa-filter-group">
                 <label>Branch</label>
-                <select multiple="multiple" t-on-change="onBranchChange" class="pa-multi-select">
+                <select t-on-change="onBranchChange">
+                    <option value="">All Branches</option>
                     <t t-foreach="posConfigs" t-as="cfg" t-key="cfg.id">
                         <option t-att-value="cfg.id"><t t-esc="cfg.name"/></option>
                     </t>
@@ -83,7 +84,8 @@
 
             <div class="pa-filter-group">
                 <label>Cashier</label>
-                <select multiple="multiple" t-on-change="onCashierChange" class="pa-multi-select">
+                <select t-on-change="onCashierChange">
+                    <option value="">All Cashiers</option>
                     <t t-foreach="cashiers" t-as="u" t-key="u.id">
                         <option t-att-value="u.id"><t t-esc="u.name"/></option>
                     </t>
@@ -93,7 +95,8 @@
             <t t-if="posHrAvailable">
                 <div class="pa-filter-group">
                     <label>Waiter</label>
-                    <select multiple="multiple" t-on-change="onWaiterChange" class="pa-multi-select">
+                    <select t-on-change="onWaiterChange">
+                        <option value="">All Waiters</option>
                         <t t-foreach="waiters" t-as="emp" t-key="emp.id">
                             <option t-att-value="emp.id"><t t-esc="emp.name"/></option>
                         </t>
@@ -103,7 +106,8 @@
 
             <div class="pa-filter-group">
                 <label>Category</label>
-                <select multiple="multiple" t-on-change="onCategoryChange" class="pa-multi-select">
+                <select t-on-change="onCategoryChange">
+                    <option value="">All Categories</option>
                     <t t-foreach="categories" t-as="cat" t-key="cat.id">
                         <option t-att-value="cat.id"><t t-esc="cat.name"/></option>
                     </t>
@@ -112,7 +116,8 @@
 
             <div class="pa-filter-group">
                 <label>Payment Method</label>
-                <select multiple="multiple" t-on-change="onPaymentMethodChange" class="pa-multi-select">
+                <select t-on-change="onPaymentMethodChange">
+                    <option value="">All Methods</option>
                     <t t-foreach="paymentMethodOptions" t-as="pm" t-key="pm.id">
                         <option t-att-value="pm.id"><t t-esc="pm.name"/></option>
                     </t>
